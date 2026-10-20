@@ -127,7 +127,7 @@ Los crea `database/supabase.sql` (y `data-local.sql` en local). Las contraseñas
 |---|---|---|---|
 | Administrador | `admin@sakura.example` | `sakura123` | Todo el panel: menú, mesas, usuarios, historial, reservas y pedidos |
 | Mesero | `mesero@sakura.example` | `mesero123` | Pantalla `/mesero`: abrir pedidos, añadir productos, cambiar estado y cobrar |
-| Cliente | `cliente@sakura.example` | `cliente123` | Ver y modificar solo sus pedidos; cancelarlos mientras están pendientes |
+| Cliente | `cliente@sakura.example` | `cliente123` | Pantalla `/mi-pedido`: elegir mesa, pedir desde la carta y seguir el estado; modificar o cancelar solo mientras está pendiente |
 
 Los clientes nuevos se registran con `POST /api/auth/registro`; meseros y administradores los crea un administrador
 en `/admin/usuarios`.
@@ -137,6 +137,8 @@ en `/admin/usuarios`.
 | Ruta | Para | Qué hace |
 |---|---|---|
 | `/` | Clientes | Landing, menú disponible y reservas |
+| `/login` | Todos | Iniciar sesión o crear cuenta de cliente; lleva a cada rol a su pantalla |
+| `/mi-pedido` | Cliente | Hacer y seguir su pedido desde la mesa |
 | `/mesero` | Mesero / Admin | Mesas con su estado y pedido de cada mesa con total automático |
 | `/admin/mesas` | Admin | CRUD de mesas |
 | `/admin/historial` | Admin | Historial de pedidos con filtros y ventas pagadas |

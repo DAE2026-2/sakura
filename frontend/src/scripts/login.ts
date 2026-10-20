@@ -4,7 +4,7 @@ import { credenciales, guardarClave } from './admin-sesion';
 
 type Usuario = { nombre: string; rol: 'ADMIN' | 'MESERO' | 'CLIENTE' };
 
-const destino: Record<Usuario['rol'], string | null> = { ADMIN: '/admin/mesas', MESERO: '/mesero', CLIENTE: null };
+const destino: Record<Usuario['rol'], string> = { ADMIN: '/admin/mesas', MESERO: '/mesero', CLIENTE: '/mi-pedido' };
 
 export function initLogin() {
   const root = document.querySelector<HTMLElement>('[data-login-pagina]');
@@ -12,7 +12,6 @@ export function initLogin() {
   const api = root.dataset.api ?? '';
   const entrar = root.querySelector<HTMLFormElement>('[data-entrar]')!;
   const registro = root.querySelector<HTMLFormElement>('[data-registro]')!;
-  const hola = root.querySelector<HTMLElement>('[data-hola]')!;
   const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')];
 
   const mostrarTab = (tab: string) => {
@@ -37,15 +36,7 @@ export function initLogin() {
     }
     const usuario = (await res.json()) as Usuario;
     guardarClave(auth);
-    const url = destino[usuario.rol];
-    if (url) {
-      location.href = url;
-      return;
-    }
-    entrar.hidden = registro.hidden = true;
-    tabs.forEach((t) => (t.hidden = true));
-    hola.hidden = false;
-    hola.innerHTML = `Hola, ${usuario.nombre.replace(/[<>&]/g, '')}. Ya puedes <a class="link" href="/#reservar">reservar tu mesa</a> o <a class="link" href="/#carta">ver la carta</a>.`;
+    location.href = destino[usuario.rol];
   };
 
   entrar.addEventListener('submit', (event) => {

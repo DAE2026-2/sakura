@@ -38,7 +38,7 @@ import jakarta.persistence.criteria.Predicate;
  * Pedidos de las mesas (RF-03 a RF-06, RF-09):
  * - Abrir un pedido ocupa la mesa; pagarlo o cancelarlo la libera.
  * - El detalle solo se modifica mientras el pedido está abierto, y el total se recalcula en cada cambio.
- * - Un CLIENTE solo ve y modifica sus propios pedidos, y solo puede cancelarlos mientras están pendientes.
+ * - Un CLIENTE solo ve sus propios pedidos y solo puede modificarlos o cancelarlos mientras están pendientes.
  */
 @Service
 public class PedidoService {
@@ -195,6 +195,10 @@ public class PedidoService {
 		var pedido = buscar(id, usuario);
 		if (pedido.getEstado().cerrado()) {
 			throw new ApiException(HttpStatus.CONFLICT, "El pedido está cerrado y ya no se puede modificar");
+		}
+		// Cuando cocina ya lo recibió, el cliente no puede cambiarlo: tiene que pedírselo al mesero.
+		if (usuario.getRol() == Rol.CLIENTE && pedido.getEstado() != EstadoPedido.PENDIENTE) {
+			throw new ApiException(HttpStatus.CONFLICT, "Tu pedido ya está en cocina. Pide los cambios al mesero");
 		}
 		return pedido;
 	}
