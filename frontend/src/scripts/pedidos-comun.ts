@@ -13,6 +13,7 @@ export type Pedido = {
   total: number;
   notas?: string;
   creadoEn: string;
+  actualizadoEn?: string;
   detalles: Detalle[];
 };
 

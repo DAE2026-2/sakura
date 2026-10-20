@@ -12,38 +12,83 @@ const siguiente: Partial<Record<EstadoPedido, { estado: EstadoPedido; texto: str
   SERVIDO: { estado: 'PAGADO', texto: 'Cobrar' },
 };
 
+// Globito de cada mesa ocupada: en qué paso va su pedido, para saber qué mesa falta por atender.
+const aviso: Partial<Record<EstadoPedido, { texto: string; clase: string }>> = {
+  PENDIENTE: { texto: 'Pedido', clase: 'bg-sakura text-bg' },
+  EN_PREPARACION: { texto: 'Preparación', clase: 'bg-bg text-sakura ring-1 ring-sakura/70' },
+  SERVIDO: { texto: 'Cobrar', clase: 'bg-crema text-bg' },
+};
+
+// Cada cuánto se consultan los pedidos para ver lo que hacen los clientes sin recargar la página.
+const REFRESCO_MS = 10_000;
+
 export function initMesero() {
   const root = document.querySelector<HTMLElement>('[data-admin]');
   if (!root) return;
   const listaMesas = root.querySelector<HTMLElement>('[data-mesas]')!;
   const panel = root.querySelector<HTMLElement>('[data-pedido]')!;
   const panelError = root.querySelector<HTMLElement>('[data-panel-error]')!;
+  const resumen = root.querySelector<HTMLElement>('[data-resumen]')!;
   let pedir: Pedir | undefined;
   let mesas: Mesa[] = [];
   let menu: CategoriaMenu[] = [];
   let mesaActual: Mesa | undefined;
   let pedido: Pedido | undefined;
+  // Pedidos abiertos de todas las mesas y la última versión de cada uno que el mesero ya vio al abrir la mesa.
+  let abiertos: Pedido[] = [];
+  const vistos = new Map<number, string | undefined>();
+
+  const pedidoDe = (mesa: Mesa) => abiertos.find((p) => p.mesaId === mesa.id);
+  const esNovedad = (p: Pedido) => vistos.get(p.id) !== p.actualizadoEn;
+  const marcarVisto = (p: Pedido | undefined) => {
+    if (p) vistos.set(p.id, p.actualizadoEn);
+  };
 
   const fallo = (error: unknown, mensaje = 'No se pudo completar la acción.') => {
     if (error instanceof SesionCaducada) return sesion.cerrarSesion('La sesión ha caducado. Vuelve a entrar.');
     panelError.textContent = error instanceof Error && error.message ? error.message : mensaje;
   };
 
+  const globito = (p: Pedido | undefined) => {
+    const a = p && aviso[p.estado];
+    if (!p || !a) return '';
+    const nuevo = esNovedad(p);
+    return `
+          <span class="absolute -top-2 left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium whitespace-nowrap shadow-lg ${a.clase}">
+            ${nuevo ? '<span class="relative flex size-1.5"><span class="absolute inline-flex size-full rounded-full bg-current opacity-75 motion-safe:animate-ping"></span><span class="relative inline-flex size-1.5 rounded-full bg-current"></span></span>' : ''}
+            ${a.texto}
+          </span>`;
+  };
+
+  const pintarResumen = () => {
+    const cuantos = (estado: EstadoPedido) => abiertos.filter((p) => p.estado === estado).length;
+    resumen.innerHTML = (['PENDIENTE', 'EN_PREPARACION', 'SERVIDO'] as const)
+      .map((e) => `<span class="inline-flex items-center gap-2"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${aviso[e]!.clase}">${cuantos(e)}</span>${aviso[e]!.texto}</span>`)
+      .join('');
+    const nuevos = abiertos.filter(esNovedad).length;
+    document.title = `${nuevos ? `(${nuevos}) ` : ''}Pedidos · Sakura`;
+  };
+
   const pintarMesas = () => {
     listaMesas.innerHTML = mesas
-      .map(
-        (m) => `
+      .map((m) => {
+        const p = pedidoDe(m);
+        const etiqueta = p && aviso[p.estado] ? ` · ${aviso[p.estado]!.texto}${esNovedad(p) ? ' (novedad)' : ''}` : '';
+        return `
       <li>
-        <button type="button" data-mesa="${m.id}" aria-pressed="${m.id === mesaActual?.id}"
-          class="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-2xl ring-1 transition-colors duration-700
+        <button type="button" data-mesa="${m.id}" aria-pressed="${m.id === mesaActual?.id}" aria-label="Mesa ${m.numero}${etiqueta}"
+          class="relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-2xl ring-1 transition-colors duration-700
           ${m.estado === 'OCUPADA' ? 'bg-sakura/15 ring-sakura/60' : 'ring-crema/15 hover:bg-crema/5'}
           ${m.id === mesaActual?.id ? 'outline-2 outline-offset-2 outline-sakura' : ''}">
+          ${globito(p)}
           <span class="font-display text-3xl tabular-nums">${m.numero}</span>
           <span class="text-xs text-crema/60">${m.capacidad} pers. · ${escapar(m.ubicacion ?? '')}</span>
+          ${p?.detalles.length ? `<span class="text-[11px] text-crema/50 tabular-nums">${precio(p.total)}</span>` : ''}
         </button>
-      </li>`,
-      )
+      </li>`;
+      })
       .join('');
+    pintarResumen();
   };
 
   const opcionesMenu = () =>
@@ -121,9 +166,32 @@ export function initMesero() {
 
   const cargarMesas = async () => {
     if (!pedir) return;
-    mesas = await pedir<Mesa[]>('/mesas');
+    [mesas, abiertos] = await Promise.all([pedir<Mesa[]>('/mesas'), pedir<Pedido[]>('/pedidos')]);
     mesaActual = mesas.find((m) => m.id === mesaActual?.id);
     pintarMesas();
+  };
+
+  // Trae los cambios de los clientes. El pedido abierto en el panel solo se repinta si cambió y el mesero
+  // no está escribiendo en el formulario, para no borrarle lo que estaba eligiendo.
+  const refrescar = async () => {
+    if (!pedir || document.hidden || root.querySelector<HTMLElement>('[data-panel]')?.hidden) return;
+    try {
+      await cargarMesas();
+      const actual = mesaActual && pedidoDe(mesaActual);
+      const cambio = actual?.id !== pedido?.id || actual?.actualizadoEn !== pedido?.actualizadoEn;
+      if (mesaActual && cambio && !panel.contains(document.activeElement)) {
+        pedido = actual;
+        marcarVisto(pedido);
+        pintarMesas();
+        pintarPedido();
+      }
+    } catch (error) {
+      // Sin sesión deja de consultar hasta que vuelva a entrar; otros fallos se reintentan en la siguiente vuelta.
+      if (error instanceof SesionCaducada) {
+        pedir = undefined;
+        fallo(error);
+      }
+    }
   };
 
   const seleccionar = async (mesa: Mesa) => {
@@ -133,6 +201,8 @@ export function initMesero() {
     pintarMesas();
     try {
       [pedido] = await pedir<Pedido[]>(`/pedidos?mesaId=${mesa.id}`);
+      marcarVisto(pedido);
+      pintarMesas();
       pintarPedido();
     } catch (error) {
       fallo(error, 'No se pudo cargar el pedido.');
@@ -152,6 +222,8 @@ export function initMesero() {
         panel.insertAdjacentHTML('afterbegin', `<p class="mb-4 rounded-xl px-3 py-2 text-sm ring-1 ring-sakura/60">Pedido #${cerrado.id} ${cerrado.estado === 'PAGADO' ? `cobrado: ${precio(cerrado.total)}` : 'cancelado'}. La mesa ${cerrado.mesa} queda disponible.</p>`);
         return;
       }
+      // Lo que cambia el propio mesero no cuenta como novedad.
+      marcarVisto(pedido);
       await cargarMesas();
       pintarPedido();
     } catch (error) {
@@ -209,8 +281,14 @@ export function initMesero() {
       const res = await fetch(`${root.dataset.api}/menu`);
       menu = res.ok ? await res.json() : [];
       await cargarMesas();
+      // Al entrar, lo que ya estaba abierto no es novedad: solo avisa de lo que llegue después.
+      abiertos.forEach(marcarVisto);
+      pintarMesas();
     } catch (error) {
       fallo(error, 'No se pudieron cargar las mesas. ¿Está arrancado el backend?');
     }
   });
+
+  setInterval(refrescar, REFRESCO_MS);
+  document.addEventListener('visibilitychange', refrescar);
 }
