@@ -173,6 +173,7 @@ insert into usuario (nombre, email, password_hash, rol) values
 on conflict (email) do nothing;
 
 insert into categoria (nombre, descripcion, orden) values
+  ('Menús degustación', 'Las experiencias de la casa', 0),
   ('Entrantes', 'Para abrir el apetito', 1),
   ('Nigiri', 'Arroz y pescado, pieza a pieza', 2),
   ('Sashimi', 'Pescado crudo cortado al momento', 3),
@@ -198,6 +199,17 @@ from (values
 ) as v(categoria, nombre, descripcion, precio, disponible, destacado, orden)
 join categoria c on c.nombre = v.categoria
 where not exists (select 1 from producto);
+
+-- Los menús degustación de la landing también se pueden pedir (por eso son productos).
+insert into producto (categoria_id, nombre, descripcion, precio, disponible, destacado, orden, imagen)
+select c.id, v.nombre, v.descripcion, v.precio, true, false, v.orden, v.imagen
+from (values
+  ('Omakase Sakura', 'Menú degustación de 9 pases elegido por el chef. Precio por persona.', 240000, 1, '/menu/sashimi.webp'),
+  ('Hanami para dos', 'Entrantes, selección de sushi, principal y postre para compartir entre dos.', 390000, 2, '/menu/uramaki.webp'),
+  ('Barra teppanyaki', 'Cena frente a la plancha: cinco pases cocinados al momento. Precio por persona.', 190000, 3, '/menu/teppanyaki.webp')
+) as v(nombre, descripcion, precio, orden, imagen)
+join categoria c on c.nombre = 'Menús degustación'
+where not exists (select 1 from producto p where p.nombre = v.nombre);
 
 -- Fotos del menú (Unsplash, optimizadas a WebP en frontend/public/menu).
 update producto set imagen = '/menu/nigiri-toro.webp' where nombre = 'Nigiri de toro flameado' and imagen is null;

@@ -2,7 +2,7 @@
 // La API solo le deja ver y cambiar sus propios pedidos, y modificarlos o cancelarlos mientras están pendientes.
 import { escapar, initSesion, SesionCaducada, type Pedir } from './admin-sesion';
 import { nombreEstado, type EstadoPedido, type Pedido } from './pedidos-comun';
-import { precio, srcsetProducto, type CategoriaMenu } from '../lib/api';
+import { CATEGORIA_MENUS, precio, srcsetProducto, type CategoriaMenu } from '../lib/api';
 
 type Mesa = { id: number; numero: number; capacidad: number; ubicacion?: string; estado: 'DISPONIBLE' | 'OCUPADA' };
 
@@ -30,7 +30,8 @@ export function initCliente() {
       .map(
         (c) => `
       <div>
-        <h2 class="font-sans text-xs tracking-widest text-crema/50 uppercase">${escapar(c.nombre)}</h2>
+        <h2 class="font-sans text-xs tracking-widest ${c.nombre === CATEGORIA_MENUS ? 'text-sakura' : 'text-crema/50'} uppercase">${escapar(c.nombre)}</h2>
+        ${c.descripcion ? `<p class="mt-1 text-sm text-crema/60">${escapar(c.descripcion)}</p>` : ''}
         <ul class="mt-4 grid gap-4 sm:grid-cols-2">
           ${c.productos
             .map(

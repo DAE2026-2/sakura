@@ -1,10 +1,14 @@
 ---
 import Pending from './Pending.astro';
-import { getMenu, precio, srcsetProducto } from '../lib/api';
+import { CATEGORIA_MENUS, getMenu, precio, srcsetProducto } from '../lib/api';
 
 // El menú vive en las tablas `categoria` y `producto`; la API solo devuelve los productos disponibles.
 const menu = await getMenu();
-const platos = menu.flatMap((c) => c.productos).sort((a, b) => a.orden - b.orden);
+// Los menús degustación ya tienen su sección (Experiencias); aquí solo va la carta.
+const platos = menu
+  .filter((c) => c.nombre !== CATEGORIA_MENUS)
+  .flatMap((c) => c.productos)
+  .sort((a, b) => a.orden - b.orden);
 const destacados = platos.filter((p) => p.destacado);
 const resto = platos.filter((p) => !p.destacado);
 ---
