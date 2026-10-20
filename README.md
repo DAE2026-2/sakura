@@ -119,8 +119,29 @@ npm run dev
 Autenticación: HTTP Basic con email y contraseña de la tabla `usuario`. Los errores siempre responden
 `{ "mensaje": "...", "campos": { "campo": "error" } }`.
 
-Usuarios de prueba: `admin@sakura.example` / `sakura123`, `mesero@sakura.example` / `mesero123`,
-`cliente@sakura.example` / `cliente123`.
+## Usuarios de prueba
+
+Los crea `database/supabase.sql` (y `data-local.sql` en local). Las contraseñas se guardan cifradas con BCrypt.
+
+| Rol | Email | Contraseña | Puede |
+|---|---|---|---|
+| Administrador | `admin@sakura.example` | `sakura123` | Todo el panel: menú, mesas, usuarios, historial, reservas y pedidos |
+| Mesero | `mesero@sakura.example` | `mesero123` | Pantalla `/mesero`: abrir pedidos, añadir productos, cambiar estado y cobrar |
+| Cliente | `cliente@sakura.example` | `cliente123` | Ver y modificar solo sus pedidos; cancelarlos mientras están pendientes |
+
+Los clientes nuevos se registran con `POST /api/auth/registro`; meseros y administradores los crea un administrador
+en `/admin/usuarios`.
+
+## Pantallas
+
+| Ruta | Para | Qué hace |
+|---|---|---|
+| `/` | Clientes | Landing, menú disponible y reservas |
+| `/mesero` | Mesero / Admin | Mesas con su estado y pedido de cada mesa con total automático |
+| `/admin/mesas` | Admin | CRUD de mesas |
+| `/admin/historial` | Admin | Historial de pedidos con filtros y ventas pagadas |
+| `/admin/usuarios` | Admin | CRUD de usuarios y roles |
+| `/admin` | Admin | Reservas del día |
 
 ## Reglas de negocio principales
 

@@ -1,0 +1,61 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminShell from '../../components/AdminShell.astro';
+---
+
+<Layout title="Usuarios · Sakura" description="Gestión de usuarios y roles" noindex landing={false}>
+  <AdminShell actual="usuarios">
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <div>
+        <p class="text-sm text-sakura">Equipo</p>
+        <h1 class="mt-2 text-3xl lg:text-5xl">Usuarios</h1>
+      </div>
+      <button type="button" data-nuevo class="btn btn-primary"><span>Nuevo usuario</span></button>
+    </div>
+
+    <div class="mt-8 overflow-x-auto rounded-3xl ring-1 ring-crema/15">
+      <table class="w-full min-w-[640px] text-left text-sm">
+        <thead class="text-xs tracking-widest text-crema/50 uppercase">
+          <tr>
+            <th class="px-4 py-3 font-medium">Nombre</th>
+            <th class="px-4 py-3 font-medium">Email</th>
+            <th class="px-4 py-3 font-medium">Rol</th>
+            <th class="px-4 py-3 font-medium">Activo</th>
+            <th class="px-4 py-3 font-medium"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody data-filas class="divide-y divide-crema/10"></tbody>
+      </table>
+    </div>
+    <p data-panel-error role="alert" class="field-error mt-4"></p>
+
+    <dialog data-dialogo class="m-auto w-[min(92vw,480px)] rounded-3xl bg-bg p-0 text-crema ring-1 ring-crema/15 backdrop:bg-bg/70 backdrop:backdrop-blur-sm">
+      <form data-form novalidate class="flex flex-col gap-4 p-6 lg:p-8">
+        <h2 class="text-2xl" data-dialogo-titulo>Nuevo usuario</h2>
+        <input type="hidden" name="id" />
+        <label class="field">Nombre<input class="input" name="nombre" maxlength="80" required /><span class="field-error" data-error="nombre"></span></label>
+        <label class="field">Email<input class="input" name="email" type="email" maxlength="120" required /><span class="field-error" data-error="email"></span></label>
+        <label class="field"><span data-ayuda-password>Contraseña</span><input class="input" name="password" type="password" minlength="8" maxlength="72" autocomplete="new-password" /><span class="field-error" data-error="password"></span></label>
+        <label class="field">Rol
+          <select class="input" name="rol">
+            <option value="MESERO">Mesero</option>
+            <option value="ADMIN">Administrador</option>
+            <option value="CLIENTE">Cliente</option>
+          </select>
+          <span class="field-error" data-error="rol"></span>
+        </label>
+        <label class="inline-flex items-center gap-3 text-sm"><input type="checkbox" name="activo" class="size-4 accent-[var(--color-sakura)]" /> Activo</label>
+        <p data-form-error role="alert" class="field-error"></p>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-cancelar class="btn btn-ghost"><span>Cancelar</span></button>
+          <button type="submit" class="btn btn-primary"><span>Guardar</span></button>
+        </div>
+      </form>
+    </dialog>
+  </AdminShell>
+</Layout>
+
+<script>
+  import { initUsuarios } from '../../scripts/admin-usuarios';
+  initUsuarios();
+</script>
