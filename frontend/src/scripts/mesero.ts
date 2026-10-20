@@ -4,7 +4,17 @@ import { escapar, initSesion, SesionCaducada, type Pedir } from './admin-sesion'
 import { nombreEstado, type EstadoPedido, type Pedido } from './pedidos-comun';
 import { precio, type CategoriaMenu } from '../lib/api';
 
-type Mesa = { id: number; numero: number; capacidad: number; ubicacion?: string; estado: 'DISPONIBLE' | 'OCUPADA' };
+// `reserva` llega cuando la mesa se guarda ahora a una reserva (desde 30 min antes hasta 15 min después de su hora).
+type ReservaMesa = { codigo: string; hora: string; personas: number; nombre: string };
+type Mesa = {
+  id: number;
+  numero: number;
+  capacidad: number;
+  ubicacion?: string;
+  estado: 'DISPONIBLE' | 'OCUPADA';
+  reservada: boolean;
+  reserva?: ReservaMesa;
+};
 
 const siguiente: Partial<Record<EstadoPedido, { estado: EstadoPedido; texto: string }>> = {
   PENDIENTE: { estado: 'EN_PREPARACION', texto: 'Enviar a cocina' },
@@ -49,8 +59,15 @@ export function initMesero() {
     panelError.textContent = error instanceof Error && error.message ? error.message : mensaje;
   };
 
-  const globito = (p: Pedido | undefined) => {
+  const CLASE_RESERVA = 'bg-bg text-crema border border-dashed border-crema/60';
+  const textoReserva = (r: ReservaMesa) => `Reserva ${r.hora} · ${r.personas}p`;
+
+  const globito = (p: Pedido | undefined, mesa: Mesa) => {
     const a = p && aviso[p.estado];
+    if (!p && mesa.reserva) {
+      return `
+          <span class="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full px-2.5 py-0.5 text-[11px] font-medium whitespace-nowrap shadow-lg ${CLASE_RESERVA}">${textoReserva(mesa.reserva)}</span>`;
+    }
     if (!p || !a) return '';
     const nuevo = esNovedad(p);
     return `
@@ -62,9 +79,12 @@ export function initMesero() {
 
   const pintarResumen = () => {
     const cuantos = (estado: EstadoPedido) => abiertos.filter((p) => p.estado === estado).length;
-    resumen.innerHTML = (['PENDIENTE', 'EN_PREPARACION', 'SERVIDO'] as const)
-      .map((e) => `<span class="inline-flex items-center gap-2"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${aviso[e]!.clase}">${cuantos(e)}</span>${aviso[e]!.texto}</span>`)
-      .join('');
+    const reservadas = mesas.filter((m) => m.reserva && !pedidoDe(m)).length;
+    resumen.innerHTML =
+      (['PENDIENTE', 'EN_PREPARACION', 'SERVIDO'] as const)
+        .map((e) => `<span class="inline-flex items-center gap-2"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${aviso[e]!.clase}">${cuantos(e)}</span>${aviso[e]!.texto}</span>`)
+        .join('') +
+      `<span class="inline-flex items-center gap-2"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${CLASE_RESERVA}">${reservadas}</span>Reservadas</span>`;
     const nuevos = abiertos.filter(esNovedad).length;
     document.title = `${nuevos ? `(${nuevos}) ` : ''}Pedidos · Sakura`;
   };
@@ -73,17 +93,23 @@ export function initMesero() {
     listaMesas.innerHTML = mesas
       .map((m) => {
         const p = pedidoDe(m);
-        const etiqueta = p && aviso[p.estado] ? ` · ${aviso[p.estado]!.texto}${esNovedad(p) ? ' (novedad)' : ''}` : '';
+        const etiqueta =
+          p && aviso[p.estado]
+            ? ` · ${aviso[p.estado]!.texto}${esNovedad(p) ? ' (novedad)' : ''}`
+            : m.reserva
+              ? ` · ${textoReserva(m.reserva)}`
+              : '';
         return `
       <li>
         <button type="button" data-mesa="${m.id}" aria-pressed="${m.id === mesaActual?.id}" aria-label="Mesa ${m.numero}${etiqueta}"
           class="relative flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-2xl ring-1 transition-colors duration-700
-          ${m.estado === 'OCUPADA' ? 'bg-sakura/15 ring-sakura/60' : 'ring-crema/15 hover:bg-crema/5'}
+          ${m.estado === 'OCUPADA' ? 'bg-sakura/15 ring-sakura/60' : m.reservada ? 'bg-crema/5 ring-transparent border border-dashed border-crema/50' : 'ring-crema/15 hover:bg-crema/5'}
           ${m.id === mesaActual?.id ? 'outline-2 outline-offset-2 outline-sakura' : ''}">
-          ${globito(p)}
+          ${globito(p, m)}
           <span class="font-display text-3xl tabular-nums">${m.numero}</span>
           <span class="text-xs text-crema/60">${m.capacidad} pers. · ${escapar(m.ubicacion ?? '')}</span>
           ${p?.detalles.length ? `<span class="text-[11px] text-crema/50 tabular-nums">${precio(p.total)}</span>` : ''}
+          ${p && m.reserva ? `<span class="text-[11px] text-crema/60">${textoReserva(m.reserva)}</span>` : ''}
         </button>
       </li>`;
       })
@@ -99,12 +125,15 @@ export function initMesero() {
   const pintarPedido = () => {
     if (!mesaActual) return;
     if (!pedido) {
+      // Si la mesa está reservada, abrir el pedido significa que llegó quien reservó: la reserva queda atendida.
+      const r = mesaActual.reserva;
       panel.innerHTML = `
         <p class="text-sm text-sakura">Mesa ${mesaActual.numero}</p>
-        <h2 class="mt-2 text-3xl">Sin pedido abierto</h2>
+        <h2 class="mt-2 text-3xl">${r ? `Reservada a las ${r.hora}` : 'Sin pedido abierto'}</h2>
+        ${r ? `<p class="mt-1 text-sm text-crema/70">${escapar(r.nombre)} · ${r.personas} personas · código ${escapar(r.codigo)}</p>` : ''}
         <form data-abrir class="mt-6 flex flex-col gap-4">
           <label class="field">Notas (opcional)<input class="input" name="notas" maxlength="300" placeholder="Alergias, celebraciones…" /></label>
-          <button type="submit" class="btn btn-primary self-start"><span>Abrir pedido</span></button>
+          <button type="submit" class="btn btn-primary self-start"><span>${r ? 'Llegó el cliente: abrir pedido' : 'Abrir pedido'}</span></button>
         </form>`;
       return;
     }

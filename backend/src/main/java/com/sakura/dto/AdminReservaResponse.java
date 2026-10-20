@@ -20,10 +20,13 @@ public record AdminReservaResponse(
 		String telefono,
 		String notas,
 		EstadoReserva estado,
-		OffsetDateTime creadaEn) {
+		OffsetDateTime creadaEn,
+		Long mesaId,
+		Integer mesa) {
 
 	public static AdminReservaResponse de(Reserva r) {
 		return new AdminReservaResponse(r.getId(), r.getCodigo(), r.getFecha(), r.getHora(), r.getPersonas(),
-				r.getNombre(), r.getEmail(), r.getTelefono(), r.getNotas(), r.getEstado(), r.getCreadaEn());
+				r.getNombre(), r.getEmail(), r.getTelefono(), r.getNotas(), r.getEstado(), r.getCreadaEn(),
+				r.getMesa() == null ? null : r.getMesa().getId(), r.getMesa() == null ? null : r.getMesa().getNumero());
 	}
 }

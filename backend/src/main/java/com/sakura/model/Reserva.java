@@ -10,7 +10,10 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 
 @Entity
 public class Reserva {
@@ -51,6 +54,11 @@ public class Reserva {
 	@Column(name = "creada_en", nullable = false)
 	private OffsetDateTime creadaEn;
 
+	/** Mesa que se le guarda al cliente. Se asigna sola al reservar y el administrador puede cambiarla. */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "mesa_id")
+	private Mesa mesa;
+
 	protected Reserva() {
 	}
 
@@ -78,6 +86,8 @@ public class Reserva {
 	public String getNotas() { return notas; }
 	public EstadoReserva getEstado() { return estado; }
 	public OffsetDateTime getCreadaEn() { return creadaEn; }
+	public Mesa getMesa() { return mesa; }
 
 	public void setEstado(EstadoReserva estado) { this.estado = estado; }
+	public void setMesa(Mesa mesa) { this.mesa = mesa; }
 }

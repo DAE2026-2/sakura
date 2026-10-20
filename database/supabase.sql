@@ -116,11 +116,20 @@ create table if not exists reserva (
   telefono   varchar(30)  not null,
   notas      varchar(500),
   estado     varchar(20)  not null default 'PENDIENTE'
-             check (estado in ('PENDIENTE', 'CONFIRMADA', 'CANCELADA')),
-  creada_en  timestamptz  not null default now()
+             check (estado in ('PENDIENTE', 'CONFIRMADA', 'ATENDIDA', 'CANCELADA')),
+  creada_en  timestamptz  not null default now(),
+  -- Mesa que se le guarda: se asigna al reservar y queda "reservada" desde 30 min antes hasta 15 min después.
+  mesa_id    bigint       references mesa (id) on delete set null
 );
 
 create index if not exists reserva_fecha_hora_idx on reserva (fecha, hora);
+
+-- Para bases creadas antes de asignar mesa a las reservas (#37).
+alter table reserva add column if not exists mesa_id bigint references mesa (id) on delete set null;
+alter table reserva drop constraint if exists reserva_estado_check;
+alter table reserva add constraint reserva_estado_check
+  check (estado in ('PENDIENTE', 'CONFIRMADA', 'ATENDIDA', 'CANCELADA'));
+create index if not exists reserva_mesa_fecha_idx on reserva (mesa_id, fecha);
 
 -- ─────────────────────────────────────────────────────────────
 -- Contenido de la landing

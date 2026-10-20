@@ -71,6 +71,7 @@ Además, el módulo de **reservas** de la landing usa tablas independientes:
 ```mermaid
 erDiagram
     TURNO ||--o{ RESERVA : "hora reservable"
+    MESA |o--o{ RESERVA : "se guarda a"
     TURNO { bigint id PK
         time hora UK
         int capacidad_max
@@ -86,7 +87,8 @@ erDiagram
         varchar nombre
         varchar email
         varchar telefono
-        varchar estado }
+        varchar estado
+        bigint mesa_id FK }
     EXPERIENCIA { bigint id PK
         varchar nombre
         numeric precio
@@ -121,6 +123,9 @@ erDiagram
 | `pedido.total` = suma de `detalle_pedido.subtotal` | `Pedido.recalcularTotal()` tras cada cambio del detalle (RF-05) |
 | Un mismo producto aparece una sola vez por pedido (se suma la cantidad) | BD (`unique (pedido_id, producto_id)`) |
 | La mesa pasa a OCUPADA al abrir un pedido y a DISPONIBLE al pagarlo o cancelarlo | `PedidoService` (HU-08) |
+| Cada reserva recibe la mesa libre más pequeña donde caben; una mesa no se reserva dos veces a menos de 2 horas | `ReservaService` |
+| La mesa sale "reservada" desde 30 min antes hasta 15 min después de la hora; el cliente no ve la hora ni puede pedir en ella | `ReservaService`, `MesaController`, `PedidoService` |
+| Si el personal abre un pedido en una mesa reservada, la reserva pasa a ATENDIDA | `PedidoService` |
 | Borrar un pedido borra su detalle | BD (`on delete cascade`) |
 | Solo ADMIN accede a `/api/admin/**` | `SecurityConfig` (RF-11) |
 
