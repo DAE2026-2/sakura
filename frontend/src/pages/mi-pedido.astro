@@ -1,0 +1,26 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AdminShell from '../components/AdminShell.astro';
+---
+
+<Layout title="Mi pedido · Sakura" description="Haz tu pedido desde la mesa" noindex landing={false}>
+  <AdminShell actual="cliente" roles={['CLIENTE']} nav={false}>
+    <div data-cliente class="grid gap-8 lg:grid-cols-[1.4fr_1fr]">
+      <section aria-labelledby="menu-title">
+        <p class="text-sm text-sakura">La carta</p>
+        <h1 id="menu-title" class="mt-2 text-3xl lg:text-4xl">¿Qué te apetece?</h1>
+        <div data-menu class="mt-6 flex flex-col gap-10"></div>
+      </section>
+
+      <aside aria-labelledby="pedido-title" class="lg:sticky lg:top-8 lg:self-start">
+        <section data-pedido aria-live="polite" class="rounded-3xl p-6 ring-1 ring-crema/15 lg:p-8"></section>
+      </aside>
+    </div>
+    <p data-panel-error role="alert" class="field-error mt-4"></p>
+  </AdminShell>
+</Layout>
+
+<script>
+  import { initCliente } from '../scripts/cliente';
+  initCliente();
+</script>

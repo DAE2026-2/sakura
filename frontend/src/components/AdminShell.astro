@@ -4,12 +4,14 @@ import { API_URL } from '../lib/api';
 
 // Marco común de las páginas del panel: cabecera con navegación, login y el contenido en `[data-panel]`.
 interface Props {
-  actual: 'reservas' | 'categorias' | 'productos' | 'mesas' | 'historial' | 'usuarios' | 'mesero';
+  actual: 'reservas' | 'categorias' | 'productos' | 'mesas' | 'historial' | 'usuarios' | 'mesero' | 'cliente';
   /** Roles que pueden entrar a la página. */
   roles?: string[];
+  /** Menú del panel; la pantalla del cliente no lo muestra. */
+  nav?: boolean;
 }
 
-const { actual, roles = ['ADMIN'] } = Astro.props;
+const { actual, roles = ['ADMIN'], nav = true } = Astro.props;
 const secciones = [
   { id: 'mesero', label: 'Pedidos', href: '/mesero' },
   { id: 'mesas', label: 'Mesas', href: '/admin/mesas' },
@@ -23,7 +25,7 @@ const secciones = [
   <header class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-6">
       <a href="/" aria-label="Volver a la web"><Logo class="text-2xl" /></a>
-      <nav aria-label="Panel">
+      {nav && (<nav aria-label="Panel">
         <ul class="flex flex-wrap gap-1 text-sm">
           {secciones.map((s) => (
             <li>
@@ -35,13 +37,14 @@ const secciones = [
             </li>
           ))}
         </ul>
-      </nav>
+      </nav>)}
     </div>
     <button type="button" data-salir hidden class="btn btn-ghost btn-sm"><span>Cerrar sesión</span></button>
   </header>
 
   <form data-login class="mx-auto mt-24 flex max-w-sm flex-col gap-4 rounded-3xl p-6 ring-1 ring-crema/15 lg:p-8">
     <h1 class="text-3xl">Panel de Sakura</h1>
+    <p class="text-sm text-crema/60">¿No tienes cuenta? <a href="/login" class="link">Créala aquí</a>.</p>
     <label class="field">Email<input class="input" type="email" name="email" autocomplete="username" required /></label>
     <label class="field">Contraseña<input class="input" type="password" name="password" autocomplete="current-password" required /></label>
     <p data-login-error role="alert" class="field-error"></p>
