@@ -12,7 +12,8 @@ insert into categoria (nombre, descripcion, orden) values
   ('Maki', 'Rollos de sushi', 4),
   ('Teppanyaki', 'A la plancha, frente a ti', 5),
   ('Postres', null, 6),
-  ('Bebidas', null, 7);
+  ('Bebidas', null, 7),
+  ('Menús degustación', 'Las experiencias de la casa', 0);
 
 insert into producto (categoria_id, nombre, descripcion, precio, disponible, destacado, orden) values
   (2, 'Nigiri de toro flameado', 'Ventresca de atún, soja dulce y sal de yuzu', 38000, true, true, 1),
@@ -24,7 +25,10 @@ insert into producto (categoria_id, nombre, descripcion, precio, disponible, des
   (1, 'Edamame con sal de mar', null, 15000, true, false, 7),
   (1, 'Miso shiru', 'Sopa de miso con tofu y wakame', 14000, true, false, 8),
   (7, 'Té verde', 'Sencha caliente', 9000, true, false, 9),
-  (7, 'Ramune', 'Refresco japonés', 12000, false, false, 10);
+  (7, 'Ramune', 'Refresco japonés', 12000, false, false, 10),
+  (8, 'Omakase Sakura', 'Menú degustación de 9 pases elegido por el chef. Precio por persona.', 240000, true, false, 1),
+  (8, 'Hanami para dos', 'Entrantes, selección de sushi, principal y postre para compartir entre dos.', 390000, true, false, 2),
+  (8, 'Barra teppanyaki', 'Cena frente a la plancha: cinco pases cocinados al momento. Precio por persona.', 190000, true, false, 3);
 
 -- Fotos del menú (Unsplash, optimizadas a WebP en frontend/public/menu).
 update producto set imagen = '/menu/nigiri-toro.webp' where nombre = 'Nigiri de toro flameado';
@@ -35,6 +39,9 @@ update producto set imagen = '/menu/teppanyaki.webp' where nombre = 'Solomillo a
 update producto set imagen = '/menu/mochi.webp' where nombre = 'Mochi de flor de cerezo';
 update producto set imagen = '/menu/miso.webp' where nombre = 'Miso shiru';
 update producto set imagen = '/menu/te-verde.webp' where nombre = 'Té verde';
+update producto set imagen = '/menu/sashimi.webp' where nombre = 'Omakase Sakura';
+update producto set imagen = '/menu/uramaki.webp' where nombre = 'Hanami para dos';
+update producto set imagen = '/menu/teppanyaki.webp' where nombre = 'Barra teppanyaki';
 
 insert into mesa (numero, capacidad, ubicacion, estado) values
   (1, 2, 'Salón', 'DISPONIBLE'), (2, 2, 'Salón', 'DISPONIBLE'), (3, 4, 'Salón', 'DISPONIBLE'), (4, 4, 'Salón', 'DISPONIBLE'),

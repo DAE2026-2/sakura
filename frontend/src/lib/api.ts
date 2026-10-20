@@ -42,6 +42,9 @@ async function get<T>(path: string): Promise<T[]> {
   }
 }
 
+/** Categoría de los menús degustación: se piden como productos, pero la landing los muestra en Experiencias. */
+export const CATEGORIA_MENUS = 'Menús degustación';
+
 /** Menú público: categorías con sus productos disponibles. */
 export const getMenu = () => get<CategoriaMenu>('/menu');
 export const getExperiencias = () => get<Experiencia>('/experiencias');
