@@ -3,7 +3,7 @@
 
 const CLAVE = 'sakura-admin';
 
-const leerClave = () => {
+export const leerClave = () => {
   try {
     return sessionStorage.getItem(CLAVE);
   } catch {
@@ -11,12 +11,16 @@ const leerClave = () => {
   }
 };
 
-const guardarClave = (valor: string | null) => {
+export const guardarClave = (valor: string | null) => {
   try {
     if (valor) sessionStorage.setItem(CLAVE, valor);
     else sessionStorage.removeItem(CLAVE);
   } catch {}
 };
+
+/** Credenciales HTTP Basic. btoa solo admite latin1: se codifica a UTF-8 antes para aceptar tildes o ñ. */
+export const credenciales = (email: string, password: string) =>
+  btoa(String.fromCharCode(...new TextEncoder().encode(`${email.trim()}:${password}`)));
 
 export class SesionCaducada extends Error {}
 
@@ -77,8 +81,7 @@ export function initSesion(root: HTMLElement, alEntrar: (pedir: Pedir) => void) 
   login.addEventListener('submit', async (event) => {
     event.preventDefault();
     const { email, password } = Object.fromEntries(new FormData(login)) as Record<string, string>;
-    // btoa solo admite latin1: se codifica a UTF-8 antes para aceptar contraseñas con tildes o ñ.
-    auth = btoa(String.fromCharCode(...new TextEncoder().encode(`${email.trim()}:${password}`)));
+    auth = credenciales(email, password);
     try {
       const yo = await pedir<{ rol: string }>('/auth/yo');
       if (!roles.includes(yo.rol)) throw new SinPermiso();
