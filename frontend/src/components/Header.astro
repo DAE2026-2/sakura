@@ -41,6 +41,9 @@ import { contacto, nav } from '../data/sakura';
     </nav>
 
     <div class="flex items-center gap-1">
+      <a href="/login" class="hidden h-9 items-center rounded-full px-3 text-sm text-crema/70 transition-colors duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:text-crema sm:flex">
+        <span class="text-trim">Entrar</span>
+      </a>
       <a href="#reservar" class="btn btn-primary btn-sm px-4">
         <span>Reservar</span>
       </a>
@@ -74,6 +77,9 @@ import { contacto, nav } from '../data/sakura';
           </li>
         ))
       }
+      <li class="menu-item" style={`--i:${nav.length}`}>
+        <a href="/login" class="font-display text-4xl text-crema">Entrar</a>
+      </li>
       <li class="menu-item pt-6" style={`--i:${nav.length}`}>
         <a href="#reservar" data-menu-link class="btn btn-primary"><span>Reservar mesa</span></a>
       </li>

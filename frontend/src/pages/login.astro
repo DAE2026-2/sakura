@@ -1,0 +1,62 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Logo from '../components/Logo.astro';
+import { API_URL } from '../lib/api';
+---
+
+<Layout title="Entrar · Sakura" description="Inicia sesión o crea tu cuenta en Sakura" noindex landing={false}>
+  <div data-login-pagina data-api={API_URL} class="mx-auto flex min-h-svh max-w-md flex-col justify-center px-4 py-12">
+    <a href="/" aria-label="Volver a la web" class="self-center"><Logo class="text-3xl" /></a>
+
+    <div class="mt-10 rounded-3xl p-6 ring-1 ring-crema/15 lg:p-8">
+      <div role="tablist" class="grid grid-cols-2 gap-1 rounded-full bg-crema/[0.05] p-1 text-sm">
+        <button type="button" role="tab" data-tab="entrar" aria-selected="true" class="tab h-9 rounded-full">Iniciar sesión</button>
+        <button type="button" role="tab" data-tab="registro" aria-selected="false" class="tab h-9 rounded-full">Crear cuenta</button>
+      </div>
+
+      <form data-entrar novalidate class="mt-6 flex flex-col gap-4">
+        <label class="field">Email<input class="input" type="email" name="email" autocomplete="username" required /></label>
+        <label class="field">Contraseña<input class="input" type="password" name="password" autocomplete="current-password" required /></label>
+        <p data-error role="alert" class="field-error"></p>
+        <button type="submit" class="btn btn-primary"><span>Entrar</span></button>
+      </form>
+
+      <form data-registro hidden novalidate class="mt-6 flex flex-col gap-4">
+        <label class="field">Nombre<input class="input" name="nombre" autocomplete="name" maxlength="80" required /><span class="field-error" data-error-campo="nombre"></span></label>
+        <label class="field">Email<input class="input" type="email" name="email" autocomplete="email" maxlength="120" required /><span class="field-error" data-error-campo="email"></span></label>
+        <label class="field">Contraseña (mínimo 8 caracteres)<input class="input" type="password" name="password" autocomplete="new-password" minlength="8" maxlength="72" required /><span class="field-error" data-error-campo="password"></span></label>
+        <p data-error role="alert" class="field-error"></p>
+        <button type="submit" class="btn btn-primary"><span>Crear cuenta</span></button>
+        <p class="text-xs text-crema/50">Las cuentas de mesero y administrador las crea un administrador.</p>
+      </form>
+
+      <p data-hola hidden class="mt-6 rounded-xl px-3 py-2 text-sm ring-1 ring-sakura/60"></p>
+    </div>
+
+    <details class="mt-6 text-sm text-crema/60">
+      <summary class="cursor-pointer">Usuarios de prueba</summary>
+      <ul class="mt-2 flex flex-col gap-1">
+        <li>Administrador: admin@sakura.example / sakura123</li>
+        <li>Mesero: mesero@sakura.example / mesero123</li>
+        <li>Cliente: cliente@sakura.example / cliente123</li>
+      </ul>
+    </details>
+  </div>
+</Layout>
+
+<style>
+  .tab {
+    color: color-mix(in oklab, var(--color-crema) 70%, transparent);
+    transition: background-color 700ms var(--ease-fluid), color 700ms var(--ease-fluid);
+  }
+
+  .tab[aria-selected='true'] {
+    background-color: var(--color-sakura);
+    color: var(--color-bg);
+  }
+</style>
+
+<script>
+  import { initLogin } from '../scripts/login';
+  initLogin();
+</script>
