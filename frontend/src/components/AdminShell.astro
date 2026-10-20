@@ -14,6 +14,8 @@ interface Props {
 const { actual, roles = ['ADMIN'], nav = true } = Astro.props;
 const secciones = [
   { id: 'mesero', label: 'Pedidos', href: '/mesero' },
+  { id: 'categorias', label: 'Categorías', href: '/admin/categorias' },
+  { id: 'productos', label: 'Productos', href: '/admin/productos' },
   { id: 'mesas', label: 'Mesas', href: '/admin/mesas' },
   { id: 'historial', label: 'Historial', href: '/admin/historial' },
   { id: 'usuarios', label: 'Usuarios', href: '/admin/usuarios' },
