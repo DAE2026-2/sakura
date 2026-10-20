@@ -1,0 +1,54 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminShell from '../../components/AdminShell.astro';
+---
+
+<Layout title="Historial · Sakura" description="Historial de pedidos" noindex landing={false}>
+  <AdminShell actual="historial">
+    <p class="text-sm text-sakura">Ventas</p>
+    <h1 class="mt-2 text-3xl lg:text-5xl">Historial de pedidos</h1>
+
+    <form data-filtros class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-6 lg:items-end">
+      <label class="field">Desde<input class="input" type="date" name="desde" /></label>
+      <label class="field">Hasta<input class="input" type="date" name="hasta" /></label>
+      <label class="field">Mesa<input class="input" type="number" min="1" name="mesa" placeholder="Todas" /></label>
+      <label class="field">Registrado por<select class="input" name="usuario"><option value="">Todos</option></select></label>
+      <label class="field">Estado
+        <select class="input" name="estado">
+          <option value="">Todos</option>
+          <option value="PENDIENTE">Pendiente</option>
+          <option value="EN_PREPARACION">En preparación</option>
+          <option value="SERVIDO">Servido</option>
+          <option value="PAGADO">Pagado</option>
+          <option value="CANCELADO">Cancelado</option>
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary"><span>Filtrar</span></button>
+    </form>
+
+    <dl data-resumen class="mt-8 grid grid-cols-2 gap-4 sm:max-w-md"></dl>
+
+    <div class="mt-8 overflow-x-auto rounded-3xl ring-1 ring-crema/15">
+      <table class="w-full min-w-[720px] text-left text-sm">
+        <thead class="text-xs tracking-widest text-crema/50 uppercase">
+          <tr>
+            <th class="px-4 py-3 font-medium">Pedido</th>
+            <th class="px-4 py-3 font-medium">Fecha</th>
+            <th class="px-4 py-3 font-medium">Mesa</th>
+            <th class="px-4 py-3 font-medium">Registrado por</th>
+            <th class="px-4 py-3 font-medium">Productos</th>
+            <th class="px-4 py-3 font-medium">Estado</th>
+            <th class="px-4 py-3 text-right font-medium">Total</th>
+          </tr>
+        </thead>
+        <tbody data-filas class="divide-y divide-crema/10"></tbody>
+      </table>
+    </div>
+    <p data-panel-error role="alert" class="field-error mt-4"></p>
+  </AdminShell>
+</Layout>
+
+<script>
+  import { initHistorial } from '../../scripts/admin-historial';
+  initHistorial();
+</script>

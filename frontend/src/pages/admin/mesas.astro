@@ -1,0 +1,55 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import AdminShell from '../../components/AdminShell.astro';
+---
+
+<Layout title="Mesas · Sakura" description="Gestión de mesas" noindex landing={false}>
+  <AdminShell actual="mesas">
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <div>
+        <p class="text-sm text-sakura">Sala</p>
+        <h1 class="mt-2 text-3xl lg:text-5xl">Mesas</h1>
+      </div>
+      <button type="button" data-nuevo class="btn btn-primary"><span>Nueva mesa</span></button>
+    </div>
+
+    <div class="mt-8 overflow-x-auto rounded-3xl ring-1 ring-crema/15">
+      <table class="w-full min-w-[640px] text-left text-sm">
+        <thead class="text-xs tracking-widest text-crema/50 uppercase">
+          <tr>
+            <th class="px-4 py-3 font-medium">Mesa</th>
+            <th class="px-4 py-3 font-medium">Capacidad</th>
+            <th class="px-4 py-3 font-medium">Ubicación</th>
+            <th class="px-4 py-3 font-medium">Estado</th>
+            <th class="px-4 py-3 font-medium"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody data-filas class="divide-y divide-crema/10"></tbody>
+      </table>
+    </div>
+    <p data-panel-error role="alert" class="field-error mt-4"></p>
+
+    <dialog data-dialogo class="m-auto w-[min(92vw,480px)] rounded-3xl bg-bg p-0 text-crema ring-1 ring-crema/15 backdrop:bg-bg/70 backdrop:backdrop-blur-sm">
+      <form data-form novalidate class="flex flex-col gap-4 p-6 lg:p-8">
+        <h2 class="text-2xl" data-dialogo-titulo>Nueva mesa</h2>
+        <input type="hidden" name="id" />
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="field">Número<input class="input" name="numero" type="number" min="1" required /><span class="field-error" data-error="numero"></span></label>
+          <label class="field">Capacidad<input class="input" name="capacidad" type="number" min="1" max="20" required /><span class="field-error" data-error="capacidad"></span></label>
+        </div>
+        <label class="field">Ubicación<input class="input" name="ubicacion" maxlength="40" list="ubicaciones" /><span class="field-error" data-error="ubicacion"></span></label>
+        <datalist id="ubicaciones">{['Salón', 'Barra', 'Terraza', 'Comedor privado'].map((u) => <option value={u} />)}</datalist>
+        <p data-form-error role="alert" class="field-error"></p>
+        <div class="flex justify-end gap-2">
+          <button type="button" data-cancelar class="btn btn-ghost"><span>Cancelar</span></button>
+          <button type="submit" class="btn btn-primary"><span>Guardar</span></button>
+        </div>
+      </form>
+    </dialog>
+  </AdminShell>
+</Layout>
+
+<script>
+  import { initMesas } from '../../scripts/admin-mesas';
+  initMesas();
+</script>

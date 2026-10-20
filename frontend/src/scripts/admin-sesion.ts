@@ -44,6 +44,8 @@ export function initSesion(root: HTMLElement, alEntrar: (pedir: Pedir) => void) 
   const loginError = root.querySelector<HTMLElement>('[data-login-error]')!;
   const panel = root.querySelector<HTMLElement>('[data-panel]')!;
   const salir = root.querySelector<HTMLButtonElement>('[data-salir]')!;
+  // Roles que pueden usar esta página (data-roles en AdminShell). Por defecto, solo ADMIN.
+  const roles = (root.dataset.roles ?? 'ADMIN').split(',');
   let auth = leerClave();
 
   const pedir: Pedir = async (path, init = {}) => {
@@ -79,7 +81,7 @@ export function initSesion(root: HTMLElement, alEntrar: (pedir: Pedir) => void) 
     auth = btoa(String.fromCharCode(...new TextEncoder().encode(`${email.trim()}:${password}`)));
     try {
       const yo = await pedir<{ rol: string }>('/auth/yo');
-      if (yo.rol !== 'ADMIN') throw new SinPermiso();
+      if (!roles.includes(yo.rol)) throw new SinPermiso();
       guardarClave(auth);
       loginError.textContent = '';
       login.reset();
@@ -91,7 +93,7 @@ export function initSesion(root: HTMLElement, alEntrar: (pedir: Pedir) => void) 
         error instanceof SesionCaducada
           ? 'Email o contraseña incorrectos.'
           : error instanceof SinPermiso
-            ? 'Tu usuario no es administrador.'
+            ? 'Tu usuario no tiene permiso para esta pantalla.'
             : 'No hay conexión con el backend.';
     }
   });

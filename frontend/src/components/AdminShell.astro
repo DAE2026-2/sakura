@@ -4,21 +4,27 @@ import { API_URL } from '../lib/api';
 
 // Marco común de las páginas del panel: cabecera con navegación, login y el contenido en `[data-panel]`.
 interface Props {
-  actual: 'reservas' | 'categorias' | 'productos';
+  actual: 'reservas' | 'categorias' | 'productos' | 'mesas' | 'historial' | 'usuarios' | 'mesero';
+  /** Roles que pueden entrar a la página. */
+  roles?: string[];
 }
 
-const { actual } = Astro.props;
+const { actual, roles = ['ADMIN'] } = Astro.props;
 const secciones = [
+  { id: 'mesero', label: 'Pedidos', href: '/mesero' },
+  { id: 'mesas', label: 'Mesas', href: '/admin/mesas' },
+  { id: 'historial', label: 'Historial', href: '/admin/historial' },
+  { id: 'usuarios', label: 'Usuarios', href: '/admin/usuarios' },
   { id: 'reservas', label: 'Reservas', href: '/admin' },
 ];
 ---
 
-<div data-admin data-api={API_URL} class="mx-auto max-w-6xl px-4 py-12 md:px-12">
+<div data-admin data-api={API_URL} data-roles={roles.join(',')} class="mx-auto max-w-6xl px-4 py-12 md:px-12">
   <header class="flex flex-wrap items-center justify-between gap-4">
     <div class="flex items-center gap-6">
       <a href="/" aria-label="Volver a la web"><Logo class="text-2xl" /></a>
       <nav aria-label="Panel">
-        <ul class="flex gap-1 text-sm">
+        <ul class="flex flex-wrap gap-1 text-sm">
           {secciones.map((s) => (
             <li>
               <a
