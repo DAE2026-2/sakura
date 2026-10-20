@@ -1,0 +1,18 @@
+---
+// Logotipo provisional: flor de cerezo y el nombre en Hina Mincho.
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+---
+
+<span class:list={['inline-flex items-center gap-2 font-display text-crema', className]}>
+  <svg viewBox="0 0 24 24" class="size-[1.1em] text-sakura" aria-hidden="true" fill="currentColor">
+    {[0, 72, 144, 216, 288].map((r) => (
+      <path transform={`rotate(${r} 12 12)`} d="M12 12c-2.2-1.6-3.2-4.2-2.2-6.6.4-.9 1.2-1.6 2.2-2l.7 1.2.6-1.2c1 .4 1.8 1.1 2.1 2 .9 2.4-.2 5-2.4 6.6z" />
+    ))}
+    <circle cx="12" cy="12" r="1.4" class="text-bg" fill="currentColor" />
+  </svg>
+  <span class="tracking-wide">Sakura</span>
+</span>

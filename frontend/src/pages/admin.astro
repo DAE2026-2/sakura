@@ -1,0 +1,44 @@
+---
+import Layout from '../layouts/Layout.astro';
+import AdminShell from '../components/AdminShell.astro';
+---
+
+<Layout title="Reservas · Sakura" description="Panel de reservas de Sakura" noindex landing={false}>
+  <AdminShell actual="reservas">
+    <div class="flex flex-wrap items-end justify-between gap-6">
+      <div>
+        <p class="text-sm text-sakura">Reservas del día</p>
+        <h1 class="mt-2 text-3xl lg:text-5xl" data-titulo></h1>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="button" data-dia="-1" class="btn btn-ghost btn-sm" aria-label="Día anterior"><span>←</span></button>
+        <label class="field">Día<input class="input" type="date" data-fecha /></label>
+        <button type="button" data-dia="1" class="btn btn-ghost btn-sm" aria-label="Día siguiente"><span>→</span></button>
+      </div>
+    </div>
+
+    <dl data-resumen class="mt-8 grid grid-cols-3 gap-4 sm:max-w-lg"></dl>
+
+    <div class="mt-8 overflow-x-auto rounded-3xl ring-1 ring-crema/15">
+      <table class="w-full min-w-[720px] text-left text-sm">
+        <thead class="text-xs tracking-widest text-crema/50 uppercase">
+          <tr>
+            <th class="px-4 py-3 font-medium">Hora</th>
+            <th class="px-4 py-3 font-medium">Pers.</th>
+            <th class="px-4 py-3 font-medium">Cliente</th>
+            <th class="px-4 py-3 font-medium">Contacto</th>
+            <th class="px-4 py-3 font-medium">Notas</th>
+            <th class="px-4 py-3 font-medium">Estado</th>
+          </tr>
+        </thead>
+        <tbody data-filas class="divide-y divide-crema/10"></tbody>
+      </table>
+    </div>
+    <p data-panel-error role="alert" class="field-error mt-4"></p>
+  </AdminShell>
+</Layout>
+
+<script>
+  import { initAdmin } from '../scripts/admin';
+  initAdmin();
+</script>

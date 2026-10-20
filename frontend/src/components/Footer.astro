@@ -1,0 +1,50 @@
+---
+import Logo from './Logo.astro';
+import Icon from './Icon.astro';
+import Pending from './Pending.astro';
+import { contacto, nav } from '../data/sakura';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="px-4 pt-24 pb-12 md:px-12 xl:px-24">
+  <div class="grid gap-12 md:grid-cols-2 xl:grid-cols-4">
+    <div class="flex flex-col gap-4">
+      <Logo class="self-start text-2xl" />
+      <p class="max-w-xs text-sm text-crema/70">Cocina japonesa, barra teppanyaki y terraza bajo los cerezos.</p>
+      <nav aria-label="Secciones">
+        <ul class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
+          {nav.map((item) => <li><a href={item.href} class="link">{item.label}</a></li>)}
+        </ul>
+      </nav>
+    </div>
+
+    <div class="flex flex-col gap-2 text-sm">
+      <h2 class="font-sans text-xs tracking-widest text-crema/50 uppercase">Visítanos</h2>
+      <address class="inline-flex items-center gap-2"><Icon name="mapPin" />{contacto.direccion}</address>
+    </div>
+
+    <div class="flex flex-col gap-2 text-sm">
+      <h2 class="font-sans text-xs tracking-widest text-crema/50 uppercase">Horario</h2>
+      {contacto.horario.map((h) => <p><span class="text-crema/70">{h.dias}:</span> {h.horas}</p>)}
+    </div>
+
+    <div class="flex flex-col gap-2 text-sm">
+      <h2 class="font-sans text-xs tracking-widest text-crema/50 uppercase">Contacto</h2>
+      <a href={contacto.telefonoHref} class="link inline-flex items-center gap-2 self-start">
+        <Icon name="phone" />{contacto.telefono}
+      </a>
+      <a href={`mailto:${contacto.email}`} class="link inline-flex items-center gap-2 self-start">
+        <Icon name="envelope" />{contacto.email}
+      </a>
+      <span class="inline-flex items-center gap-2"><Icon name="instagram" />{contacto.instagram}</span>
+    </div>
+  </div>
+
+  <Pending class="mt-8 max-w-md">{contacto.pending}</Pending>
+
+  <div class="mt-16 flex flex-col gap-4 pt-8 text-xs text-crema/50 md:flex-row md:items-center md:justify-between">
+    <p>© {year} Sakura</p>
+    <p>Vídeos del recorrido: <a href="https://github.com/midudev/mcp-higgsfield-landing" class="link" rel="noopener">midudev/mcp-higgsfield-landing</a>, solo para uso local.</p>
+  </div>
+</footer>

@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ScrollWorld from '../components/ScrollWorld.astro';
+import Tagline from '../components/Tagline.astro';
+import Dishes from '../components/Dishes.astro';
+import Experiences from '../components/Experiences.astro';
+import Ambientes from '../components/Ambientes.astro';
+import Faq from '../components/Faq.astro';
+import Reservar from '../components/Reservar.astro';
+import { seo } from '../data/sakura';
+---
+
+<Layout title={seo.title} description={seo.description}>
+  <ScrollWorld />
+  <Tagline />
+  <Dishes />
+  <Experiences />
+  <Ambientes />
+  <Faq />
+  <Reservar />
+</Layout>

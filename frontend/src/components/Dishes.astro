@@ -1,0 +1,56 @@
+---
+import Pending from './Pending.astro';
+import { getMenu, precio } from '../lib/api';
+
+// El menú vive en las tablas `categoria` y `producto`; la API solo devuelve los productos disponibles.
+const menu = await getMenu();
+const platos = menu.flatMap((c) => c.productos);
+const destacados = platos.filter((p) => p.destacado);
+const resto = platos.filter((p) => !p.destacado);
+---
+
+<section id="carta" data-spy="#carta" aria-labelledby="carta-title" class="px-4 py-24 md:px-12 xl:px-24">
+  <div class="mx-auto max-w-6xl">
+    <div class="max-w-xl">
+      <p data-reveal class="text-sm text-sakura">La carta</p>
+      <h2 id="carta-title" data-reveal style="--d:100ms" class="mt-4 text-3xl lg:text-5xl">Lo que llega a la mesa</h2>
+    </div>
+
+    {platos.length === 0 && <Pending class="mt-8">No se pudo cargar la carta. Arranca el backend en el puerto 8080.</Pending>}
+
+    <ol class="mt-12 divide-y divide-crema/10">
+      {
+        destacados.map((plato, i) => (
+          <li data-reveal style={`--d:${i * 80}ms`} class="grid grid-cols-[auto_1fr_auto] items-baseline gap-x-6 gap-y-1 py-6 lg:py-8">
+            <span class="font-display text-sm text-sakura tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+            <div>
+              <p class="text-xs tracking-widest text-crema/50 uppercase">{plato.categoria}</p>
+              <h3 class="mt-2 text-2xl lg:text-4xl">{plato.nombre}</h3>
+              {plato.descripcion && <p class="mt-2 text-base text-crema/70">{plato.descripcion}</p>}
+            </div>
+            <p class="font-display text-lg tabular-nums lg:text-2xl">{precio(plato.precio)}</p>
+          </li>
+        ))
+      }
+    </ol>
+
+    {
+      resto.length > 0 && (
+        <div data-reveal class="mt-12 rounded-3xl p-6 ring-1 ring-crema/15 lg:p-8">
+          <h3 class="text-xl">Para acompañar</h3>
+          <ul class="mt-4 grid gap-x-12 gap-y-3 md:grid-cols-2">
+            {resto.map((plato) => (
+              <li class="flex items-baseline justify-between gap-4 text-base">
+                <span>
+                  {plato.nombre}
+                  {plato.descripcion && <span class="block text-sm text-crema/60">{plato.descripcion}</span>}
+                </span>
+                <span class="tabular-nums text-crema/80">{precio(plato.precio)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </div>
+</section>

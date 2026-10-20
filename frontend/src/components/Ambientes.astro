@@ -1,0 +1,43 @@
+---
+import { Image } from 'astro:assets';
+import Pending from './Pending.astro';
+import { ambientes } from '../data/sakura';
+---
+
+<section id="ambientes" data-spy="#ambientes" aria-labelledby="amb-title" class="px-4 py-24 md:px-12 xl:px-24">
+  <div class="mx-auto max-w-6xl">
+    <div class="max-w-xl">
+      <p data-reveal class="text-sm text-sakura">Ambientes</p>
+      <h2 id="amb-title" data-reveal style="--d:100ms" class="mt-4 text-3xl lg:text-5xl">Un rincón para cada ocasión</h2>
+      <p data-reveal style="--d:200ms" class="mt-6 text-base text-crema/70 lg:text-lg">
+        Indica en las notas de tu reserva si prefieres alguno y haremos lo posible por guardártelo.
+      </p>
+    </div>
+
+    <Pending class="mt-8 max-w-xl">Imágenes conceptuales de baja resolución (unos 500 px). Sustituir por fotos reales.</Pending>
+
+    <ul class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        ambientes.map((amb, i) => (
+          <li data-reveal style={`--d:${(i % 3) * 100}ms`} class="flex flex-col gap-4">
+            <div class="mirror-frame rounded-3xl">
+              <Image
+                src={amb.foto}
+                alt={amb.nombre}
+                widths={[400, amb.foto.width]}
+                sizes="(min-width: 1024px) 360px, (min-width: 640px) 45vw, 92vw"
+                loading="lazy"
+                decoding="async"
+                class="aspect-[4/3] w-full rounded-2xl object-cover"
+              />
+            </div>
+            <div>
+              <h3 class="text-xl">{amb.nombre}</h3>
+              <p class="mt-1 text-sm text-crema/70">{amb.detalle}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

@@ -1,0 +1,48 @@
+---
+import Logo from './Logo.astro';
+import { API_URL } from '../lib/api';
+
+// Marco común de las páginas del panel: cabecera con navegación, login y el contenido en `[data-panel]`.
+interface Props {
+  actual: 'reservas' | 'categorias' | 'productos';
+}
+
+const { actual } = Astro.props;
+const secciones = [
+  { id: 'reservas', label: 'Reservas', href: '/admin' },
+];
+---
+
+<div data-admin data-api={API_URL} class="mx-auto max-w-6xl px-4 py-12 md:px-12">
+  <header class="flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-6">
+      <a href="/" aria-label="Volver a la web"><Logo class="text-2xl" /></a>
+      <nav aria-label="Panel">
+        <ul class="flex gap-1 text-sm">
+          {secciones.map((s) => (
+            <li>
+              <a
+                href={s.href}
+                aria-current={s.id === actual ? 'page' : undefined}
+                class="flex h-9 items-center rounded-full px-3 text-crema/70 hover:text-crema aria-[current=page]:bg-crema/[0.07] aria-[current=page]:text-crema"
+              >{s.label}</a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
+    <button type="button" data-salir hidden class="btn btn-ghost btn-sm"><span>Cerrar sesión</span></button>
+  </header>
+
+  <form data-login class="mx-auto mt-24 flex max-w-sm flex-col gap-4 rounded-3xl p-6 ring-1 ring-crema/15 lg:p-8">
+    <h1 class="text-3xl">Panel de Sakura</h1>
+    <label class="field">Email<input class="input" type="email" name="email" autocomplete="username" required /></label>
+    <label class="field">Contraseña<input class="input" type="password" name="password" autocomplete="current-password" required /></label>
+    <p data-login-error role="alert" class="field-error"></p>
+    <button type="submit" class="btn btn-primary"><span>Entrar</span></button>
+  </form>
+
+  <section data-panel hidden class="mt-12">
+    <slot />
+  </section>
+</div>

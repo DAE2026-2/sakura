@@ -1,0 +1,49 @@
+---
+import { getExperiencias, precio } from '../lib/api';
+
+// Los menús cerrados viven en la tabla `experiencia` de la base de datos.
+const experiencias = await getExperiencias();
+const paraQuien = (personas: number) => (personas === 1 ? 'por persona' : `para ${personas}`);
+---
+
+<section id="experiencias" data-spy="#experiencias" aria-labelledby="exp-title" class="px-4 py-24 md:px-12 xl:px-24">
+  <div class="mx-auto max-w-6xl">
+    <div class="max-w-xl">
+      <p data-reveal class="text-sm text-sakura">Experiencias</p>
+      <h2 id="exp-title" data-reveal style="--d:100ms" class="mt-4 text-3xl lg:text-5xl">Menús cerrados, sin sorpresas</h2>
+      <p data-reveal style="--d:200ms" class="mt-6 text-base text-crema/70 lg:text-lg">
+        Déjate llevar por el chef o pide a la carta. El precio, a la vista desde el principio.
+      </p>
+    </div>
+
+    <div class="mt-12 grid gap-6 lg:grid-cols-3">
+      {
+        experiencias.map((exp, i) => (
+          <article
+            data-reveal
+            style={`--d:${i * 100}ms`}
+            class:list={[
+              'relative flex flex-col rounded-3xl p-6 ring-1 lg:p-8',
+              exp.etiqueta ? 'ring-sakura/60' : 'ring-crema/15',
+            ]}
+          >
+            {exp.etiqueta && (
+              <p class="absolute -top-3 left-6 rounded-full bg-sakura px-3 py-1 text-xs font-medium text-bg lg:left-8">
+                {exp.etiqueta}
+              </p>
+            )}
+            <h3 class="text-2xl">{exp.nombre}</h3>
+            <p class="mt-2 text-base text-crema/70">{exp.descripcion}</p>
+            <p class="mt-8 flex flex-wrap items-baseline gap-x-2">
+              <span class="font-display text-4xl tabular-nums">{precio(exp.precio)}</span>
+              <span class="text-sm text-crema/50">{paraQuien(exp.personas)}</span>
+            </p>
+            <div class="mt-8 flex flex-1 items-end">
+              <a href="#reservar" class="btn btn-primary"><span>Reservar mesa</span></a>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

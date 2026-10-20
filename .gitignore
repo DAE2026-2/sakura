@@ -1,0 +1,8 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+.claude/
+
+# Vídeos del recorrido (de midudev, se descargan con frontend/scripts-dev/descargar-videos.sh)
+frontend/public/video/
