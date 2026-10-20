@@ -10,8 +10,11 @@ export type Producto = {
   precio: number;
   disponible: boolean;
   destacado: boolean;
+  orden: number;
   categoriaId: number;
   categoria: string;
+  /** Ruta del WebP de 800 px; la variante de 400 px termina en -400.webp. */
+  imagen?: string;
 };
 
 export type CategoriaMenu = { id: number; nombre: string; descripcion?: string; productos: Producto[] };
@@ -43,6 +46,9 @@ async function get<T>(path: string): Promise<T[]> {
 export const getMenu = () => get<CategoriaMenu>('/menu');
 export const getExperiencias = () => get<Experiencia>('/experiencias');
 export const getFaqs = () => get<Faq>('/faqs');
+
+/** srcset con las dos variantes de la foto de un producto. */
+export const srcsetProducto = (imagen: string) => `${imagen.replace(/\.webp$/, '-400.webp')} 400w, ${imagen} 800w`;
 
 const cop = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
 export const precio = (valor: number) => cop.format(valor);

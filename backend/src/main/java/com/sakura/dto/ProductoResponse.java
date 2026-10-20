@@ -14,10 +14,11 @@ public record ProductoResponse(
 		boolean destacado,
 		int orden,
 		Long categoriaId,
-		String categoria) {
+		String categoria,
+		String imagen) {
 
 	public static ProductoResponse de(Producto p) {
 		return new ProductoResponse(p.getId(), p.getNombre(), p.getDescripcion(), p.getPrecio(), p.isDisponible(),
-				p.isDestacado(), p.getOrden(), p.getCategoria().getId(), p.getCategoria().getNombre());
+				p.isDestacado(), p.getOrden(), p.getCategoria().getId(), p.getCategoria().getNombre(), p.getImagen());
 	}
 }

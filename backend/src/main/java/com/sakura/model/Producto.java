@@ -42,6 +42,10 @@ public class Producto {
 	@Column(nullable = false)
 	private int orden;
 
+	/** Ruta pública de la foto (WebP de 800 px en frontend/public/menu); la variante de 400 px termina en -400.webp. */
+	@Column(length = 200)
+	private String imagen;
+
 	protected Producto() {
 	}
 
@@ -64,6 +68,7 @@ public class Producto {
 	public boolean isDisponible() { return disponible; }
 	public boolean isDestacado() { return destacado; }
 	public int getOrden() { return orden; }
+	public String getImagen() { return imagen; }
 
 	public void setCategoria(Categoria categoria) { this.categoria = categoria; }
 	public void setNombre(String nombre) { this.nombre = nombre; }
@@ -72,4 +77,5 @@ public class Producto {
 	public void setDisponible(boolean disponible) { this.disponible = disponible; }
 	public void setDestacado(boolean destacado) { this.destacado = destacado; }
 	public void setOrden(int orden) { this.orden = orden; }
+	public void setImagen(String imagen) { this.imagen = imagen; }
 }
