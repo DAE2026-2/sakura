@@ -39,8 +39,12 @@ create table if not exists producto (
   precio       numeric(10, 2) not null check (precio >= 0),
   disponible   boolean       not null default true,
   destacado    boolean       not null default false,
-  orden        integer       not null default 0
+  orden        integer       not null default 0,
+  imagen       varchar(200)
 );
+
+-- Foto del producto (añadida después): ruta pública del WebP de 800 px.
+alter table producto add column if not exists imagen varchar(200);
 
 create index if not exists producto_categoria_idx on producto (categoria_id);
 
@@ -194,6 +198,16 @@ from (values
 ) as v(categoria, nombre, descripcion, precio, disponible, destacado, orden)
 join categoria c on c.nombre = v.categoria
 where not exists (select 1 from producto);
+
+-- Fotos del menú (Unsplash, optimizadas a WebP en frontend/public/menu).
+update producto set imagen = '/menu/nigiri-toro.webp' where nombre = 'Nigiri de toro flameado' and imagen is null;
+update producto set imagen = '/menu/sashimi.webp' where nombre = 'Sashimi moriawase' and imagen is null;
+update producto set imagen = '/menu/uramaki.webp' where nombre = 'Uramaki Sakura' and imagen is null;
+update producto set imagen = '/menu/gyozas.webp' where nombre = 'Gyozas de wagyu' and imagen is null;
+update producto set imagen = '/menu/teppanyaki.webp' where nombre = 'Solomillo al teppanyaki' and imagen is null;
+update producto set imagen = '/menu/mochi.webp' where nombre = 'Mochi de flor de cerezo' and imagen is null;
+update producto set imagen = '/menu/miso.webp' where nombre = 'Miso shiru' and imagen is null;
+update producto set imagen = '/menu/te-verde.webp' where nombre = 'Té verde' and imagen is null;
 
 insert into mesa (numero, capacidad, ubicacion) values
   (1, 2, 'Salón'), (2, 2, 'Salón'), (3, 4, 'Salón'), (4, 4, 'Salón'), (5, 6, 'Salón'),

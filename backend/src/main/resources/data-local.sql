@@ -26,6 +26,16 @@ insert into producto (categoria_id, nombre, descripcion, precio, disponible, des
   (7, 'Té verde', 'Sencha caliente', 9000, true, false, 9),
   (7, 'Ramune', 'Refresco japonés', 12000, false, false, 10);
 
+-- Fotos del menú (Unsplash, optimizadas a WebP en frontend/public/menu).
+update producto set imagen = '/menu/nigiri-toro.webp' where nombre = 'Nigiri de toro flameado';
+update producto set imagen = '/menu/sashimi.webp' where nombre = 'Sashimi moriawase';
+update producto set imagen = '/menu/uramaki.webp' where nombre = 'Uramaki Sakura';
+update producto set imagen = '/menu/gyozas.webp' where nombre = 'Gyozas de wagyu';
+update producto set imagen = '/menu/teppanyaki.webp' where nombre = 'Solomillo al teppanyaki';
+update producto set imagen = '/menu/mochi.webp' where nombre = 'Mochi de flor de cerezo';
+update producto set imagen = '/menu/miso.webp' where nombre = 'Miso shiru';
+update producto set imagen = '/menu/te-verde.webp' where nombre = 'Té verde';
+
 insert into mesa (numero, capacidad, ubicacion, estado) values
   (1, 2, 'Salón', 'DISPONIBLE'), (2, 2, 'Salón', 'DISPONIBLE'), (3, 4, 'Salón', 'DISPONIBLE'), (4, 4, 'Salón', 'DISPONIBLE'),
   (5, 6, 'Salón', 'DISPONIBLE'), (6, 2, 'Barra', 'DISPONIBLE'), (7, 2, 'Barra', 'DISPONIBLE'), (8, 4, 'Terraza', 'DISPONIBLE'),

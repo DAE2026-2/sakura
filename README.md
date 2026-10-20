@@ -168,3 +168,13 @@ en `/admin/usuarios`.
 - Recorrido con scroll, vídeos y fuentes basados en [midudev/mcp-higgsfield-landing](https://github.com/midudev/mcp-higgsfield-landing).
   Los vídeos muestran otro restaurante y se usan solo con fines académicos.
 - Fuentes Hina Mincho y Zen Kaku Gothic New, licencia SIL OFL.
+- Fotos del menú de [Unsplash](https://unsplash.com/license) (licencia Unsplash), optimizadas a WebP de 800 y 400 px
+  en `frontend/public/menu/`:
+  [nigiri](https://unsplash.com/photos/0GLzjcRBJQ8) (MChe Lee),
+  [sashimi](https://unsplash.com/photos/moRC8S5K8AM) (Bundo Kim),
+  [uramaki](https://unsplash.com/photos/-1GEAA8q3wk) (Vinicius Benedit),
+  [gyozas](https://unsplash.com/photos/q66grqqHpDQ) (Pooja Chaudhary),
+  [teppanyaki](https://unsplash.com/photos/dzEirdooEiM),
+  [mochi](https://unsplash.com/photos/IWELEWFpufI) (Mattia Occhi),
+  [miso](https://unsplash.com/photos/Mk3NKQboQkA) (Seiya Maeda),
+  [té verde](https://unsplash.com/photos/zZ-QFv9auxg) (Yu Kato).
