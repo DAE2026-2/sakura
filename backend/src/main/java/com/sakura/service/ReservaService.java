@@ -5,9 +5,16 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,32 +27,43 @@ import com.sakura.dto.DisponibilidadResponse;
 import com.sakura.dto.ReservaRequest;
 import com.sakura.exception.ApiException;
 import com.sakura.model.EstadoReserva;
+import com.sakura.model.Mesa;
 import com.sakura.model.Reserva;
 import com.sakura.model.Turno;
 import com.sakura.repository.CierreRepository;
+import com.sakura.repository.MesaRepository;
 import com.sakura.repository.ReservaRepository;
 import com.sakura.repository.TurnoRepository;
 
-/** Reglas de las reservas: qué días y horas se pueden reservar, cuántas plazas quedan y el ciclo de vida de cada una. */
+/**
+ * Reglas de las reservas: qué días y horas se pueden reservar, cuántas plazas quedan, qué mesa se guarda a cada
+ * reserva y el ciclo de vida de cada una.
+ */
 @Service
 public class ReservaService {
 
 	private static final Logger log = LoggerFactory.getLogger(ReservaService.class);
 	// Sin 0/O ni 1/I/L para que el código no se confunda al dictarlo por teléfono.
 	private static final String ALFABETO = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+	private static final Set<EstadoReserva> ACTIVAS = EnumSet.of(EstadoReserva.PENDIENTE, EstadoReserva.CONFIRMADA);
+	// Se prueba primero la mesa más pequeña donde quepan, para no gastar las grandes en grupos pequeños.
+	private static final Comparator<Mesa> MAS_PEQUENA = Comparator.comparingInt(Mesa::getCapacidad)
+			.thenComparingInt(Mesa::getNumero);
 
 	private final ReservaRepository reservas;
 	private final TurnoRepository turnos;
 	private final CierreRepository cierres;
+	private final MesaRepository mesas;
 	private final SakuraProperties props;
 	private final Clock clock;
 	private final SecureRandom random = new SecureRandom();
 
 	public ReservaService(ReservaRepository reservas, TurnoRepository turnos, CierreRepository cierres,
-			SakuraProperties props, Clock clock) {
+			MesaRepository mesas, SakuraProperties props, Clock clock) {
 		this.reservas = reservas;
 		this.turnos = turnos;
 		this.cierres = cierres;
+		this.mesas = mesas;
 		this.props = props;
 		this.clock = clock;
 	}
@@ -64,11 +82,14 @@ public class ReservaService {
 			ocupadas.put((LocalTime) fila[0], ((Number) fila[1]).longValue());
 		}
 
+		var delDia = reservas.findByFechaAndEstadoIn(fecha, ACTIVAS);
+		var todas = mesas.findAll();
 		var horas = turnos.findByActivoTrueOrderByHora().stream()
 				.filter(t -> !yaPasada(fecha, t.getHora()))
 				.map(t -> new DisponibilidadResponse.Hora(t.getHora(),
 						(int) (t.getCapacidadMax() - ocupadas.getOrDefault(t.getHora(), 0L))))
 				.filter(h -> h.plazasLibres() >= personas)
+				.filter(h -> mesaLibre(todas, delDia, h.hora(), personas, null).isPresent())
 				.toList();
 		return new DisponibilidadResponse(fecha, personas, horas,
 				horas.isEmpty() ? "No quedan horas libres para %d personas este día".formatted(personas) : null);
@@ -90,13 +111,19 @@ public class ReservaService {
 			throw new ApiException(HttpStatus.CONFLICT,
 					"Ya no quedan plazas para %d personas a las %s. Prueba otra hora".formatted(req.personas(), req.hora()));
 		}
+		var mesa = mesaLibre(mesas.findAll(), reservas.findByFechaAndEstadoIn(req.fecha(), ACTIVAS), req.hora(),
+				req.personas(), null)
+				.orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
+						"Ya no quedan mesas para %d personas a las %s. Prueba otra hora".formatted(req.personas(), req.hora())));
 
-		var reserva = reservas.save(new Reserva(nuevoCodigo(), req.fecha(), req.hora(), req.personas(),
+		var reserva = new Reserva(nuevoCodigo(), req.fecha(), req.hora(), req.personas(),
 				req.nombre().trim(), req.email().trim().toLowerCase(), req.telefono().trim(),
-				vacioANull(req.notas()), OffsetDateTime.now(clock)));
+				vacioANull(req.notas()), OffsetDateTime.now(clock));
+		reserva.setMesa(mesa);
+		reservas.save(reserva);
 		// En local no se envían correos: aquí iría el email de confirmación.
-		log.info("Reserva {} creada: {} {} · {} personas · {}", reserva.getCodigo(), reserva.getFecha(),
-				reserva.getHora(), reserva.getPersonas(), reserva.getEmail());
+		log.info("Reserva {} creada: {} {} · {} personas · mesa {} · {}", reserva.getCodigo(), reserva.getFecha(),
+				reserva.getHora(), reserva.getPersonas(), mesa.getNumero(), reserva.getEmail());
 		return reserva;
 	}
 
@@ -130,11 +157,91 @@ public class ReservaService {
 		return reservas.findByFechaOrderByHoraAscCreadaEnAsc(fecha);
 	}
 
+	/** Si una reserva cancelada o atendida vuelve a estar activa, necesita otra vez una mesa libre a su hora. */
 	@Transactional
 	public Reserva cambiarEstado(Long id, EstadoReserva estado) {
-		var reserva = reservas.findById(id).orElseThrow(ApiException::noEncontrada);
+		var reserva = buscar(id);
+		if (estado.activa() && !reserva.getEstado().activa()) {
+			var otras = reservas.findByFechaAndEstadoIn(reserva.getFecha(), ACTIVAS);
+			boolean sigueLibre = reserva.getMesa() != null
+					&& mesaLibre(List.of(reserva.getMesa()), otras, reserva.getHora(), reserva.getPersonas(), id).isPresent();
+			if (!sigueLibre) {
+				reserva.setMesa(mesaLibre(mesas.findAll(), otras, reserva.getHora(), reserva.getPersonas(), id)
+						.orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
+								"No queda ninguna mesa libre para esta reserva a las " + reserva.getHora())));
+			}
+		}
 		reserva.setEstado(estado);
 		return reserva;
+	}
+
+	/** El administrador mueve la reserva a otra mesa, siempre que quepan y esté libre a esa hora. */
+	@Transactional
+	public Reserva cambiarMesa(Long id, Long mesaId) {
+		var reserva = buscar(id);
+		if (!reserva.getEstado().activa()) {
+			throw new ApiException(HttpStatus.CONFLICT, "Solo se cambia la mesa de reservas pendientes o confirmadas");
+		}
+		var mesa = mesas.findById(mesaId)
+				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa mesa no existe"));
+		if (mesa.getCapacidad() < reserva.getPersonas()) {
+			throw new ApiException(HttpStatus.CONFLICT, "En la mesa %d no caben %d personas"
+					.formatted(mesa.getNumero(), reserva.getPersonas()));
+		}
+		var otras = reservas.findByFechaAndEstadoIn(reserva.getFecha(), ACTIVAS);
+		if (mesaLibre(List.of(mesa), otras, reserva.getHora(), reserva.getPersonas(), id).isEmpty()) {
+			throw new ApiException(HttpStatus.CONFLICT, "La mesa %d ya está reservada cerca de esa hora"
+					.formatted(mesa.getNumero()));
+		}
+		reserva.setMesa(mesa);
+		return reserva;
+	}
+
+	/**
+	 * Reservas que ahora mismo guardan su mesa, por id de mesa: desde {@code minutosAntes} antes de la hora hasta
+	 * {@code minutosDespues} después. Pasado ese margen, si el cliente no llegó, la mesa vuelve a quedar libre.
+	 */
+	@Transactional(readOnly = true)
+	public Map<Long, Reserva> reservadasAhora() {
+		var ahora = LocalTime.now(clock);
+		return reservas.findByFechaAndEstadoIn(LocalDate.now(clock), ACTIVAS).stream()
+				.filter(r -> r.getMesa() != null)
+				.filter(r -> !ahora.isBefore(r.getHora().minusMinutes(props.reservas().minutosAntes()))
+						&& !ahora.isAfter(r.getHora().plusMinutes(props.reservas().minutosDespues())))
+				.collect(Collectors.toMap(r -> r.getMesa().getId(), Function.identity(),
+						(a, b) -> a.getHora().isBefore(b.getHora()) ? a : b));
+	}
+
+	/** La reserva que guarda ahora mismo esa mesa, si la hay. */
+	@Transactional(readOnly = true)
+	public Optional<Reserva> reservaEnCurso(Long mesaId) {
+		return Optional.ofNullable(reservadasAhora().get(mesaId));
+	}
+
+	/** ¿La mesa tiene reservas pendientes de hoy en adelante? */
+	@Transactional(readOnly = true)
+	public boolean tieneReservasFuturas(Long mesaId) {
+		return reservas.existsByMesaIdAndFechaGreaterThanEqualAndEstadoIn(mesaId, LocalDate.now(clock), ACTIVAS);
+	}
+
+	/**
+	 * La mesa más pequeña de {@code candidatas} donde caben las personas y que ninguna otra reserva del día ocupa a
+	 * menos de {@code duracionMinutos} de esa hora. {@code ignorar} es la propia reserva cuando se está editando.
+	 */
+	private Optional<Mesa> mesaLibre(List<Mesa> candidatas, List<Reserva> delDia, LocalTime hora, int personas,
+			Long ignorar) {
+		int duracion = props.reservas().duracionMinutos();
+		return candidatas.stream()
+				.filter(m -> m.getCapacidad() >= personas)
+				.filter(m -> delDia.stream()
+						.filter(r -> !r.getId().equals(ignorar) && r.getMesa() != null)
+						.noneMatch(r -> r.getMesa().getId().equals(m.getId())
+								&& Math.abs(ChronoUnit.MINUTES.between(r.getHora(), hora)) < duracion))
+				.min(MAS_PEQUENA);
+	}
+
+	private Reserva buscar(Long id) {
+		return reservas.findWithMesaById(id).orElseThrow(ApiException::noEncontrada);
 	}
 
 	/** Devuelve por qué no se puede reservar ese día, o null si se puede. */

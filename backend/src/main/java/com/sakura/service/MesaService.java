@@ -23,15 +23,24 @@ public class MesaService {
 
 	private final MesaRepository mesas;
 	private final PedidoRepository pedidos;
+	private final ReservaService reservas;
 
-	public MesaService(MesaRepository mesas, PedidoRepository pedidos) {
+	public MesaService(MesaRepository mesas, PedidoRepository pedidos, ReservaService reservas) {
 		this.mesas = mesas;
 		this.pedidos = pedidos;
+		this.reservas = reservas;
 	}
 
+	/**
+	 * Mesas con lo que les toca ahora: las que se guardan a una reserva salen como reservadas. Con
+	 * {@code conDetalle} (mesero y administrador) incluye la hora, las personas y el nombre de la reserva.
+	 */
 	@Transactional(readOnly = true)
-	public List<MesaResponse> listar() {
-		return mesas.findAllByOrderByNumero().stream().map(MesaResponse::de).toList();
+	public List<MesaResponse> listar(boolean conDetalle) {
+		var reservadas = reservas.reservadasAhora();
+		return mesas.findAllByOrderByNumero().stream()
+				.map(m -> MesaResponse.de(m, reservadas.get(m.getId()), conDetalle))
+				.toList();
 	}
 
 	@Transactional(readOnly = true)
@@ -70,12 +79,15 @@ public class MesaService {
 		return MesaResponse.de(mesa);
 	}
 
-	/** Una mesa con pedidos en el historial no se borra, para no perder las ventas. */
+	/** Una mesa con pedidos en el historial no se borra, para no perder las ventas; tampoco si tiene reservas por llegar. */
 	@Transactional
 	public void eliminar(Long id) {
 		var mesa = buscar(id);
 		if (pedidos.existsByMesaId(id)) {
 			throw new ApiException(HttpStatus.CONFLICT, "La mesa tiene pedidos en el historial y no se puede eliminar");
+		}
+		if (reservas.tieneReservasFuturas(id)) {
+			throw new ApiException(HttpStatus.CONFLICT, "La mesa tiene reservas pendientes. Muévelas a otra mesa antes");
 		}
 		mesas.delete(mesa);
 	}

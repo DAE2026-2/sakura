@@ -24,6 +24,7 @@ import com.sakura.exception.ApiException;
 import com.sakura.model.DetallePedido;
 import com.sakura.model.EstadoMesa;
 import com.sakura.model.EstadoPedido;
+import com.sakura.model.EstadoReserva;
 import com.sakura.model.Pedido;
 import com.sakura.model.Rol;
 import com.sakura.model.Usuario;
@@ -57,14 +58,16 @@ public class PedidoService {
 	private final MesaRepository mesas;
 	private final ProductoRepository productos;
 	private final UsuarioRepository usuarios;
+	private final ReservaService reservas;
 	private final Clock clock;
 
 	public PedidoService(PedidoRepository pedidos, MesaRepository mesas, ProductoRepository productos,
-			UsuarioRepository usuarios, Clock clock) {
+			UsuarioRepository usuarios, ReservaService reservas, Clock clock) {
 		this.pedidos = pedidos;
 		this.mesas = mesas;
 		this.productos = productos;
 		this.usuarios = usuarios;
+		this.reservas = reservas;
 		this.clock = clock;
 	}
 
@@ -87,7 +90,10 @@ public class PedidoService {
 		return PedidoResponse.de(buscar(id, usuario(email)));
 	}
 
-	/** RF-03: el pedido nace PENDIENTE en una mesa disponible, que pasa a OCUPADA. */
+	/**
+	 * RF-03: el pedido nace PENDIENTE en una mesa disponible, que pasa a OCUPADA. Si la mesa está reservada ahora,
+	 * un cliente no puede usarla; si la abre el personal, es que llegó quien reservó y la reserva queda atendida.
+	 */
 	@Transactional
 	public PedidoResponse crear(PedidoRequest req, String email) {
 		var usuario = usuario(email);
@@ -95,6 +101,13 @@ public class PedidoService {
 				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa mesa no existe"));
 		if (mesa.getEstado() != EstadoMesa.DISPONIBLE) {
 			throw new ApiException(HttpStatus.CONFLICT, "La mesa " + mesa.getNumero() + " está ocupada");
+		}
+		var reserva = reservas.reservaEnCurso(mesa.getId());
+		if (reserva.isPresent()) {
+			if (usuario.getRol() == Rol.CLIENTE) {
+				throw new ApiException(HttpStatus.CONFLICT, "La mesa " + mesa.getNumero() + " está reservada. Elige otra");
+			}
+			reserva.get().setEstado(EstadoReserva.ATENDIDA);
 		}
 		mesa.setEstado(EstadoMesa.OCUPADA);
 		var pedido = pedidos.save(new Pedido(mesa, usuario, vacioANull(req.notas()), ahora()));

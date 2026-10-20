@@ -4,7 +4,8 @@ import { escapar, initSesion, SesionCaducada, type Pedir } from './admin-sesion'
 import { nombreEstado, type EstadoPedido, type Pedido } from './pedidos-comun';
 import { CATEGORIA_MENUS, precio, srcsetProducto, type CategoriaMenu } from '../lib/api';
 
-type Mesa = { id: number; numero: number; capacidad: number; ubicacion?: string; estado: 'DISPONIBLE' | 'OCUPADA' };
+// `reservada`: se guarda a una reserva que está por llegar. La API no le dice al cliente a qué hora.
+type Mesa = { id: number; numero: number; capacidad: number; ubicacion?: string; estado: 'DISPONIBLE' | 'OCUPADA'; reservada: boolean };
 
 const pasos: EstadoPedido[] = ['PENDIENTE', 'EN_PREPARACION', 'SERVIDO', 'PAGADO'];
 
@@ -63,14 +64,15 @@ export function initCliente() {
   const pintarSinPedido = async () => {
     if (!pedir) return;
     const mesas = (await pedir<Mesa[]>('/mesas')).filter((m) => m.estado === 'DISPONIBLE');
+    const libres = mesas.filter((m) => !m.reservada);
     panel.innerHTML = `
       <p class="text-sm text-sakura">Tu pedido</p>
       <h2 id="pedido-title" class="mt-2 text-2xl">¿En qué mesa estás?</h2>
       ${
-        mesas.length
+        libres.length
           ? `<form data-abrir class="mt-6 flex flex-col gap-4">
               <label class="field">Mesa
-                <select class="input" name="mesaId">${mesas.map((m) => `<option value="${m.id}">Mesa ${m.numero} · ${m.capacidad} pers. · ${escapar(m.ubicacion ?? '')}</option>`).join('')}</select>
+                <select class="input" name="mesaId">${mesas.map((m) => `<option value="${m.id}" ${m.reservada ? 'disabled' : ''}>Mesa ${m.numero} · ${m.capacidad} pers. · ${escapar(m.ubicacion ?? '')}${m.reservada ? ' · Reservada' : ''}</option>`).join('')}</select>
               </label>
               <label class="field">Notas para cocina (opcional)<input class="input" name="notas" maxlength="300" placeholder="Alergias, sin picante…" /></label>
               <button type="submit" class="btn btn-primary self-start"><span>Empezar pedido</span></button>
