@@ -32,24 +32,23 @@ public class AdminCategoriaController {
 
 	@GetMapping
 	public List<CategoriaResponse> listar() {
-		return service.listar().stream().map(CategoriaResponse::de).toList();
+		return service.listar();
 	}
 
 	@GetMapping("/{id}")
 	public CategoriaResponse obtener(@PathVariable Long id) {
-		return CategoriaResponse.de(service.obtener(id));
+		return service.obtener(id);
 	}
 
 	@PostMapping
 	public ResponseEntity<CategoriaResponse> crear(@Valid @RequestBody CategoriaRequest req) {
 		var categoria = service.crear(req);
-		return ResponseEntity.created(URI.create("/api/admin/categorias/" + categoria.getId()))
-				.body(CategoriaResponse.de(categoria));
+		return ResponseEntity.created(URI.create("/api/admin/categorias/" + categoria.id())).body(categoria);
 	}
 
 	@PutMapping("/{id}")
 	public CategoriaResponse actualizar(@PathVariable Long id, @Valid @RequestBody CategoriaRequest req) {
-		return CategoriaResponse.de(service.actualizar(id, req));
+		return service.actualizar(id, req);
 	}
 
 	@DeleteMapping("/{id}")

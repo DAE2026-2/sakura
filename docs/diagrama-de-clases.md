@@ -54,16 +54,78 @@ classDiagram
         -BigDecimal subtotal
     }
 
+    class Reserva {
+        -Long id
+        -String codigo
+        -LocalDate fecha
+        -LocalTime hora
+        -int personas
+        -String nombre
+        -String email
+        -String telefono
+        -String notas
+        -EstadoReserva estado
+        -OffsetDateTime creadaEn
+    }
+
+    class Turno {
+        -Long id
+        -LocalTime hora
+        -int capacidadMax
+        -boolean activo
+    }
+
+    class Cierre {
+        -Long id
+        -LocalDate fecha
+        -String motivo
+    }
+
+    class Experiencia {
+        -Long id
+        -String nombre
+        -String descripcion
+        -BigDecimal precio
+        -int personas
+        -String etiqueta
+        -int orden
+    }
+
+    class Faq {
+        -Long id
+        -String pregunta
+        -String respuesta
+        -int orden
+    }
+
+    class EstadoReserva {
+        <<enumeration>>
+        PENDIENTE
+        CONFIRMADA
+        ATENDIDA
+        CANCELADA
+    }
+
     class EstadoMesa {
         <<enumeration>>
+        DISPONIBLE
+        OCUPADA
     }
 
     class EstadoPedido {
         <<enumeration>>
+        PENDIENTE
+        EN_PREPARACION
+        SERVIDO
+        PAGADO
+        CANCELADO
     }
 
     class Rol {
         <<enumeration>>
+        ADMIN
+        MESERO
+        CLIENTE
     }
 
     Categoria "1" --> "0..*" Producto : contiene
@@ -74,4 +136,10 @@ classDiagram
     Mesa --> EstadoMesa : estado
     Pedido --> EstadoPedido : estado
     Usuario --> Rol : rol
+    Mesa "0..1" <-- "0..*" Reserva : se asigna a
+    Reserva --> EstadoReserva : estado
+    Turno "1" .. "0..*" Reserva : misma hora y cupo
 ```
+
+`Turno` y `Reserva` se relacionan por la hora (no hay clave foránea): el turno marca cuántas personas caben a esa hora.
+`Cierre` son los días sin servicio. `Experiencia` y `Faq` son contenido de la landing.

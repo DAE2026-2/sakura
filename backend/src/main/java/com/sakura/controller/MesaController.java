@@ -25,6 +25,6 @@ public class MesaController {
 	public List<MesaResponse> listar(Authentication auth) {
 		// El cliente solo sabe que una mesa está reservada; la hora y el nombre son para el personal.
 		boolean cliente = auth.getAuthorities().stream().anyMatch(a -> "ROLE_CLIENTE".equals(a.getAuthority()));
-		return service.listar(!cliente);
+		return service.listar(!cliente, cliente ? auth.getName() : null);
 	}
 }

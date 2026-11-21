@@ -167,13 +167,13 @@ cd backend
 ./mvnw test
 ```
 
-19 pruebas automáticas contra la base H2 en memoria (no tocan Supabase):
+24 pruebas automáticas contra la base H2 en memoria (no tocan Supabase):
 
 | Archivo | Qué prueba |
 |---|---|
 | `SeguridadJwtTests` | Login correcto e incorrecto, token en `/auth/yo`, HTTP Basic ya no sirve, token alterado, permisos de cada rol (200/401/403), usuario desactivado, registro |
-| `CrudEndpointsTests` | CRUD completo por HTTP de categorías, productos, mesas y usuarios; errores de validación por campo; pedido completo del mesero (total automático, mesa ocupada y liberada, ventas en el historial) |
-| `MesasReservadasTests` | Mesa asignada a cada reserva, mesa reservada para el cliente y el mesero, cambio de mesa, cupo del turno al reactivar una reserva |
+| `CrudEndpointsTests` | CRUD completo por HTTP de categorías, productos, mesas y usuarios; errores de validación por campo; pedido completo del mesero (total automático, mesa ocupada y liberada, ventas en el historial); formato del contenido público |
+| `MesasReservadasTests` | Mesa asignada a cada reserva, mesa reservada para el cliente y el mesero, cambio de mesa, cupo del turno al reactivar, un pedido por cliente, el cliente que reservó usa su mesa, no asignar mesas ocupadas, una reserva por email y día |
 | `BackendApplicationTests` | La aplicación arranca |
 
 ## Usuarios de prueba
@@ -207,6 +207,8 @@ en `/admin/usuarios`.
 - El total del pedido es siempre la suma de los subtotales del detalle; el precio se copia del producto al añadirlo.
 - La mesa pasa a OCUPADA al abrir un pedido y vuelve a DISPONIBLE al pagarlo o cancelarlo.
 - No se borra una categoría con productos ni un producto que ya está en pedidos (se marca como no disponible).
+- Un cliente solo tiene **un pedido abierto** a la vez; un mesero atiende las mesas que haga falta.
+- Una mesa reservada solo la abre el personal o el **cliente que hizo la reserva** (mismo email que su cuenta).
 
 ## Reglas de las reservas
 
@@ -214,6 +216,9 @@ en `/admin/usuarios`.
 - Cada turno tiene una capacidad máxima de personas; la comprobación y el guardado se hacen en una transacción con
   bloqueo del turno para que dos clientes no ocupen a la vez el último hueco.
 - El cliente recibe un código `SAK-XXXX`. Para consultar o cancelar necesita el código **y** su email.
+- Una reserva activa por email y día (evita duplicados por doble clic).
+- A cada reserva se le asigna la mesa más pequeña donde caben; si empieza en menos de 2 h, no se usan mesas que
+  están ocupadas en ese momento.
 
 ## Gestión del proyecto con GitHub
 

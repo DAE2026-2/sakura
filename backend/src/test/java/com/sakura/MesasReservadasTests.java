@@ -21,6 +21,7 @@ import com.sakura.dto.MesaResponse;
 import com.sakura.dto.PedidoRequest;
 import com.sakura.dto.ReservaRequest;
 import com.sakura.exception.ApiException;
+import com.sakura.model.EstadoPedido;
 import com.sakura.model.EstadoReserva;
 import com.sakura.model.Reserva;
 import com.sakura.repository.ReservaRepository;
@@ -45,18 +46,31 @@ class MesasReservadasTests {
 		}
 	}
 
+	static final String CLIENTE = "cliente@sakura.example";
+	static final String MESERO = "mesero@sakura.example";
+
 	@Autowired ReservaService reservas;
 	@Autowired MesaService mesas;
 	@Autowired PedidoService pedidos;
 	@Autowired ReservaRepository repo;
 
+	int clientes = 0;
+
+	/** Cada llamada es un cliente distinto: solo se admite una reserva activa por email y día. */
 	Reserva reservar(String hora, int personas) {
-		return reservas.crear(new ReservaRequest(HOY, LocalTime.parse(hora), personas, "Ana", "ana@example.com",
-				"3001234567", null));
+		return reservar(hora, personas, "cliente" + (++clientes) + "@example.com");
+	}
+
+	Reserva reservar(String hora, int personas, String email) {
+		return reservas.crear(new ReservaRequest(HOY, LocalTime.parse(hora), personas, "Ana", email, "3001234567", null));
 	}
 
 	MesaResponse mesa(int numero, boolean conDetalle) {
-		return mesas.listar(conDetalle).stream().filter(m -> m.numero() == numero).findFirst().orElseThrow();
+		return mesa(numero, conDetalle, null);
+	}
+
+	MesaResponse mesa(int numero, boolean conDetalle, String emailCliente) {
+		return mesas.listar(conDetalle, emailCliente).stream().filter(m -> m.numero() == numero).findFirst().orElseThrow();
 	}
 
 	@Test
@@ -121,5 +135,52 @@ class MesasReservadasTests {
 		assertThatThrownBy(() -> reservas.cambiarEstado(grande.getId(), EstadoReserva.CONFIRMADA))
 				.isInstanceOf(ApiException.class)
 				.hasMessageContaining("plazas");
+	}
+
+	@Test
+	void unClienteSoloPuedeTenerUnPedidoAbierto() {
+		var primero = pedidos.crear(new PedidoRequest(1L, null), CLIENTE);
+		assertThatThrownBy(() -> pedidos.crear(new PedidoRequest(2L, null), CLIENTE))
+				.isInstanceOf(ApiException.class)
+				.hasMessageContaining("Ya tienes un pedido abierto");
+
+		pedidos.cambiarEstado(primero.id(), EstadoPedido.CANCELADO, CLIENTE);
+		assertThat(pedidos.crear(new PedidoRequest(2L, null), CLIENTE).mesa()).isEqualTo(2);
+
+		// El mesero atiende muchas mesas a la vez.
+		pedidos.crear(new PedidoRequest(5L, null), MESERO);
+		pedidos.crear(new PedidoRequest(6L, null), MESERO);
+	}
+
+	@Test
+	void elClienteQueReservoPuedeAbrirPedidoEnSuMesaReservada() {
+		var reserva = reservar("20:00", 4, "Cliente@Sakura.example"); // mismo email que su cuenta, otra capitalización
+		Long mesaId = reserva.getMesa().getId();
+
+		assertThat(mesa(3, false, CLIENTE).reservada()).isFalse(); // para él está libre
+		assertThat(mesa(3, false, "otro@example.com").reservada()).isTrue();
+
+		pedidos.crear(new PedidoRequest(mesaId, null), CLIENTE);
+		assertThat(repo.findById(reserva.getId()).orElseThrow().getEstado()).isEqualTo(EstadoReserva.ATENDIDA);
+	}
+
+	@Test
+	void unaReservaParaDentroDePocoNoSeAsignaAUnaMesaOcupadaAhora() {
+		pedidos.crear(new PedidoRequest(3L, null), MESERO); // mesa 3 (4 pers.) ocupada a las 19:40
+
+		assertThat(reservar("20:00", 4).getMesa().getNumero()).isEqualTo(4);
+		// A las 22:00 ya habrán pasado más de 2 h: la mesa 3 vuelve a contar.
+		assertThat(reservar("22:00", 4).getMesa().getNumero()).isEqualTo(3);
+	}
+
+	@Test
+	void noSeRepiteUnaReservaActivaConElMismoEmailElMismoDia() {
+		var primera = reservar("20:00", 2, "ana@example.com");
+		assertThatThrownBy(() -> reservar("21:00", 2, "ANA@example.com"))
+				.isInstanceOf(ApiException.class)
+				.hasMessageContaining("Ya tienes una reserva");
+
+		reservas.cancelar(primera.getCodigo(), "ana@example.com");
+		reservar("21:00", 2, "ana@example.com");
 	}
 }

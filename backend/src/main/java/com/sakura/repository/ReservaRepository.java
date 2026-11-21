@@ -19,6 +19,8 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
 	boolean existsByCodigo(String codigo);
 
+	boolean existsByEmailIgnoreCaseAndFechaAndEstadoIn(String email, LocalDate fecha, Collection<EstadoReserva> estados);
+
 	@EntityGraph(attributePaths = "mesa")
 	Optional<Reserva> findWithMesaById(Long id);
 

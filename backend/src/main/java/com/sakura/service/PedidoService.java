@@ -89,12 +89,18 @@ public class PedidoService {
 	}
 
 	/**
-	 * RF-03: el pedido nace PENDIENTE en una mesa disponible, que pasa a OCUPADA. Si la mesa está reservada ahora,
-	 * un cliente no puede usarla; si la abre el personal, es que llegó quien reservó y la reserva queda atendida.
+	 * RF-03: el pedido nace PENDIENTE en una mesa disponible, que pasa a OCUPADA. Un cliente solo tiene un pedido
+	 * abierto a la vez (si no, podría bloquear varias mesas). Si la mesa está reservada ahora, solo la usa el personal
+	 * o el cliente que hizo la reserva (mismo email); en ambos casos la reserva queda atendida.
 	 */
 	@Transactional
 	public PedidoResponse crear(PedidoRequest req, String email) {
 		var usuario = usuario(email);
+		boolean cliente = usuario.getRol() == Rol.CLIENTE;
+		// shortcut: dos peticiones simultáneas del mismo cliente en mesas distintas podrían pasar las dos; bloquear la fila del usuario si llega a importar.
+		if (cliente && pedidos.existsByUsuarioIdAndEstadoNotIn(usuario.getId(), EstadoPedido.CERRADOS)) {
+			throw new ApiException(HttpStatus.CONFLICT, "Ya tienes un pedido abierto. Termínalo o cancélalo antes de abrir otro");
+		}
 		var mesa = mesas.findWithLockById(req.mesaId())
 				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa mesa no existe"));
 		if (mesa.getEstado() != EstadoMesa.DISPONIBLE) {
@@ -102,7 +108,7 @@ public class PedidoService {
 		}
 		var reserva = reservas.reservaEnCurso(mesa.getId());
 		if (reserva.isPresent()) {
-			if (usuario.getRol() == Rol.CLIENTE) {
+			if (cliente && !reserva.get().getEmail().equalsIgnoreCase(usuario.getEmail())) {
 				throw new ApiException(HttpStatus.CONFLICT, "La mesa " + mesa.getNumero() + " está reservada. Elige otra");
 			}
 			reserva.get().setEstado(EstadoReserva.ATENDIDA);

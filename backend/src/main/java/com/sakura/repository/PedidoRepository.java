@@ -28,4 +28,6 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long>, JpaSpecif
 	boolean existsByMesaId(Long mesaId);
 
 	boolean existsByUsuarioId(Long usuarioId);
+
+	boolean existsByUsuarioIdAndEstadoNotIn(Long usuarioId, Collection<EstadoPedido> estados);
 }

@@ -32,12 +32,17 @@ public class MesaService {
 	/**
 	 * Mesas con lo que les toca ahora: las que se guardan a una reserva salen como reservadas. Con
 	 * {@code conDetalle} (mesero y administrador) incluye la hora, las personas y el nombre de la reserva.
+	 * {@code emailCliente}: para un cliente, la mesa reservada a su nombre aparece libre (es la suya).
 	 */
 	@Transactional(readOnly = true)
-	public List<MesaResponse> listar(boolean conDetalle) {
+	public List<MesaResponse> listar(boolean conDetalle, String emailCliente) {
 		var reservadas = reservas.reservadasAhora();
 		return mesas.findAllByOrderByNumero().stream()
-				.map(m -> MesaResponse.de(m, reservadas.get(m.getId()), conDetalle))
+				.map(m -> {
+					var r = reservadas.get(m.getId());
+					boolean suya = r != null && emailCliente != null && r.getEmail().equalsIgnoreCase(emailCliente);
+					return MesaResponse.de(m, suya ? null : r, conDetalle);
+				})
 				.toList();
 	}
 

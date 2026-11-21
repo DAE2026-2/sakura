@@ -7,10 +7,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.sakura.dto.ExperienciaResponse;
+import com.sakura.dto.FaqResponse;
 import com.sakura.dto.MenuCategoriaResponse;
 import com.sakura.dto.ProductoResponse;
-import com.sakura.model.Experiencia;
-import com.sakura.model.Faq;
 import com.sakura.repository.CategoriaRepository;
 import com.sakura.repository.ExperienciaRepository;
 import com.sakura.repository.FaqRepository;
@@ -46,11 +46,11 @@ public class ContenidoService {
 				.toList();
 	}
 
-	public List<Experiencia> experiencias() {
-		return experiencias.findAllByOrderByOrden();
+	public List<ExperienciaResponse> experiencias() {
+		return experiencias.findAllByOrderByOrden().stream().map(ExperienciaResponse::de).toList();
 	}
 
-	public List<Faq> faqs() {
-		return faqs.findAllByOrderByOrden();
+	public List<FaqResponse> faqs() {
+		return faqs.findAllByOrderByOrden().stream().map(FaqResponse::de).toList();
 	}
 }
