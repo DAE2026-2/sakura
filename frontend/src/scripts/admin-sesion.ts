@@ -1,5 +1,5 @@
-// Sesión del panel de administración, compartida por todas sus páginas: login con HTTP Basic contra /api/admin y
-// credenciales en sessionStorage, que se olvidan al cerrar la pestaña.
+// Sesión compartida por todas las pantallas con login: POST /api/auth/login devuelve un token JWT que se guarda en
+// sessionStorage (se olvida al cerrar la pestaña) y se envía como `Authorization: Bearer`. La contraseña no se guarda.
 
 const CLAVE = 'sakura-admin';
 
@@ -18,11 +18,21 @@ export const guardarClave = (valor: string | null) => {
   } catch {}
 };
 
-/** Credenciales HTTP Basic. btoa solo admite latin1: se codifica a UTF-8 antes para aceptar tildes o ñ. */
-export const credenciales = (email: string, password: string) =>
-  btoa(String.fromCharCode(...new TextEncoder().encode(`${email.trim()}:${password}`)));
-
 export class SesionCaducada extends Error {}
+
+export type Usuario = { nombre: string; email: string; rol: 'ADMIN' | 'MESERO' | 'CLIENTE' };
+
+/** Pide el token. Lanza SesionCaducada si el email o la contraseña no son correctos. */
+export async function iniciarSesion(api: string, email: string, password: string) {
+  const res = await fetch(`${api}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email.trim(), password }),
+  });
+  if (res.status === 401 || res.status === 400) throw new SesionCaducada();
+  if (!res.ok) throw new Error(`${res.status}`);
+  return (await res.json()) as { token: string; usuario: Usuario };
+}
 
 class SinPermiso extends Error {}
 
@@ -55,7 +65,7 @@ export function initSesion(root: HTMLElement, alEntrar: (pedir: Pedir) => void) 
   const pedir: Pedir = async (path, init = {}) => {
     const res = await fetch(`${api}${path}`, {
       ...init,
-      headers: { ...init.headers, Authorization: `Basic ${auth}`, 'Content-Type': 'application/json' },
+      headers: { ...init.headers, Authorization: `Bearer ${auth}`, 'Content-Type': 'application/json' },
     });
     if (res.status === 401) throw new SesionCaducada();
     if (!res.ok) {
@@ -81,10 +91,10 @@ export function initSesion(root: HTMLElement, alEntrar: (pedir: Pedir) => void) 
   login.addEventListener('submit', async (event) => {
     event.preventDefault();
     const { email, password } = Object.fromEntries(new FormData(login)) as Record<string, string>;
-    auth = credenciales(email, password);
     try {
-      const yo = await pedir<{ rol: string }>('/auth/yo');
-      if (!roles.includes(yo.rol)) throw new SinPermiso();
+      const { token, usuario } = await iniciarSesion(api, email, password);
+      if (!roles.includes(usuario.rol)) throw new SinPermiso();
+      auth = token;
       guardarClave(auth);
       loginError.textContent = '';
       login.reset();

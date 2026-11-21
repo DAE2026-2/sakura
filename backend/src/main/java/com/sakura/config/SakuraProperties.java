@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /** Propiedades `sakura.*` de application.properties. */
 @ConfigurationProperties("sakura")
-public record SakuraProperties(ZoneId zonaHoraria, Reservas reservas, Cors cors) {
+public record SakuraProperties(ZoneId zonaHoraria, Reservas reservas, Cors cors, Jwt jwt) {
 
 	/**
 	 * @param minutosAntes   desde cuánto antes de la hora reservada la mesa aparece como reservada
@@ -19,5 +19,12 @@ public record SakuraProperties(ZoneId zonaHoraria, Reservas reservas, Cors cors)
 	}
 
 	public record Cors(List<String> origenes) {
+	}
+
+	/**
+	 * @param secreto clave para firmar los tokens (HS256): al menos 32 caracteres, fuera del repositorio en producción
+	 * @param horas   cuánto dura la sesión: un turno de trabajo
+	 */
+	public record Jwt(String secreto, int horas) {
 	}
 }

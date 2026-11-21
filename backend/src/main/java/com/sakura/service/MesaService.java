@@ -19,8 +19,6 @@ import com.sakura.repository.PedidoRepository;
 @Service
 public class MesaService {
 
-	private static final List<EstadoPedido> CERRADOS = List.of(EstadoPedido.PAGADO, EstadoPedido.CANCELADO);
-
 	private final MesaRepository mesas;
 	private final PedidoRepository pedidos;
 	private final ReservaService reservas;
@@ -53,7 +51,7 @@ public class MesaService {
 		if (mesas.existsByNumero(req.numero())) {
 			throw new ApiException(HttpStatus.CONFLICT, "Ya existe la mesa " + req.numero());
 		}
-		return MesaResponse.de(mesas.save(new Mesa(req.numero(), req.capacidad(), vacioANull(req.ubicacion()))));
+		return MesaResponse.de(mesas.save(new Mesa(req.numero(), req.capacidad(), Textos.vacioANull(req.ubicacion()))));
 	}
 
 	@Transactional
@@ -64,7 +62,7 @@ public class MesaService {
 		}
 		mesa.setNumero(req.numero());
 		mesa.setCapacidad(req.capacidad());
-		mesa.setUbicacion(vacioANull(req.ubicacion()));
+		mesa.setUbicacion(Textos.vacioANull(req.ubicacion()));
 		return MesaResponse.de(mesa);
 	}
 
@@ -72,7 +70,7 @@ public class MesaService {
 	@Transactional
 	public MesaResponse cambiarEstado(Long id, EstadoMesa estado) {
 		var mesa = buscar(id);
-		if (estado == EstadoMesa.DISPONIBLE && pedidos.existsByMesaIdAndEstadoNotIn(id, CERRADOS)) {
+		if (estado == EstadoMesa.DISPONIBLE && pedidos.existsByMesaIdAndEstadoNotIn(id, EstadoPedido.CERRADOS)) {
 			throw new ApiException(HttpStatus.CONFLICT, "La mesa tiene un pedido abierto. Cóbralo o cancélalo primero");
 		}
 		mesa.setEstado(estado);
@@ -94,9 +92,5 @@ public class MesaService {
 
 	private Mesa buscar(Long id) {
 		return mesas.findById(id).orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe esa mesa"));
-	}
-
-	private static String vacioANull(String texto) {
-		return texto == null || texto.isBlank() ? null : texto.trim();
 	}
 }

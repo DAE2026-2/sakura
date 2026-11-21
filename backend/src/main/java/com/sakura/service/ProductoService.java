@@ -42,7 +42,7 @@ public class ProductoService {
 	public Producto crear(ProductoRequest req) {
 		var categoria = categorias.findById(req.categoriaId())
 				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa categoría no existe"));
-		return productos.save(new Producto(categoria, req.nombre().trim(), vacioANull(req.descripcion()), req.precio(),
+		return productos.save(new Producto(categoria, req.nombre().trim(), Textos.vacioANull(req.descripcion()), req.precio(),
 				req.esDisponible(), req.esDestacado(), req.ordenOCero()));
 	}
 
@@ -53,7 +53,7 @@ public class ProductoService {
 				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa categoría no existe"));
 		producto.setCategoria(categoria);
 		producto.setNombre(req.nombre().trim());
-		producto.setDescripcion(vacioANull(req.descripcion()));
+		producto.setDescripcion(Textos.vacioANull(req.descripcion()));
 		producto.setPrecio(req.precio());
 		producto.setDisponible(req.esDisponible());
 		producto.setDestacado(req.esDestacado());
@@ -72,9 +72,5 @@ public class ProductoService {
 			throw new ApiException(HttpStatus.CONFLICT,
 					"El producto aparece en pedidos. Márcalo como no disponible en lugar de eliminarlo");
 		}
-	}
-
-	private static String vacioANull(String texto) {
-		return texto == null || texto.isBlank() ? null : texto.trim();
 	}
 }

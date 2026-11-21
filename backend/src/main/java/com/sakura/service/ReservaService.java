@@ -118,7 +118,7 @@ public class ReservaService {
 
 		var reserva = new Reserva(nuevoCodigo(), req.fecha(), req.hora(), req.personas(),
 				req.nombre().trim(), req.email().trim().toLowerCase(), req.telefono().trim(),
-				vacioANull(req.notas()), OffsetDateTime.now(clock));
+				Textos.vacioANull(req.notas()), OffsetDateTime.now(clock));
 		reserva.setMesa(mesa);
 		reservas.save(reserva);
 		// En local no se envían correos: aquí iría el email de confirmación.
@@ -157,10 +157,22 @@ public class ReservaService {
 		return reservas.findByFechaOrderByHoraAscCreadaEnAsc(fecha);
 	}
 
-	/** Si una reserva cancelada o atendida vuelve a estar activa, necesita otra vez una mesa libre a su hora. */
+	/**
+	 * Si una reserva cancelada o atendida vuelve a estar activa, necesita otra vez una mesa libre a su hora; si estaba
+	 * cancelada, además vuelve a ocupar plazas del turno, que no puede pasarse de su capacidad.
+	 */
 	@Transactional
 	public Reserva cambiarEstado(Long id, EstadoReserva estado) {
 		var reserva = buscar(id);
+		if (estado.activa() && reserva.getEstado() == EstadoReserva.CANCELADA) {
+			Turno turno = turnos.findByHoraAndActivoTrue(reserva.getHora())
+					.orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Ya no hay servicio a las " + reserva.getHora()));
+			long ocupadas = reservas.personasEnTurno(reserva.getFecha(), reserva.getHora(), EstadoReserva.CANCELADA);
+			if (ocupadas + reserva.getPersonas() > turno.getCapacidadMax()) {
+				throw new ApiException(HttpStatus.CONFLICT,
+						"No quedan plazas para %d personas a las %s".formatted(reserva.getPersonas(), reserva.getHora()));
+			}
+		}
 		if (estado.activa() && !reserva.getEstado().activa()) {
 			var otras = reservas.findByFechaAndEstadoIn(reserva.getFecha(), ACTIVAS);
 			boolean sigueLibre = reserva.getMesa() != null
@@ -268,9 +280,5 @@ public class ReservaService {
 			codigo = sb.toString();
 		} while (reservas.existsByCodigo(codigo));
 		return codigo;
-	}
-
-	private static String vacioANull(String texto) {
-		return texto == null || texto.isBlank() ? null : texto.trim();
 	}
 }
