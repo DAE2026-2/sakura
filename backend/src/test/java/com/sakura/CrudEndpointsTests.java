@@ -109,4 +109,17 @@ class CrudEndpointsTests {
 		pedir(get("/api/admin/mesas/" + mesa), admin, null).andExpect(jsonPath("$.estado").value("DISPONIBLE"));
 		pedir(get("/api/admin/pedidos?mesa=51"), admin, null).andExpect(jsonPath("$.ventasPagadas").value(76000));
 	}
+
+	@Test
+	void elContenidoPublicoMantieneSuFormato() throws Exception {
+		mvc.perform(get("/api/experiencias")).andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].nombre").value("Omakase Sakura"))
+				.andExpect(jsonPath("$[0].precio").value(240000))
+				.andExpect(jsonPath("$[0].personas").value(1))
+				.andExpect(jsonPath("$[0].etiqueta").value("Más popular"));
+		mvc.perform(get("/api/faqs")).andExpect(status().isOk())
+				.andExpect(jsonPath("$[0].pregunta").value("¿Cómo reservo?"))
+				.andExpect(jsonPath("$[0].respuesta").isNotEmpty());
+		pedir(get("/api/admin/productos/1"), admin, null).andExpect(jsonPath("$.categoria").value("Nigiri"));
+	}
 }

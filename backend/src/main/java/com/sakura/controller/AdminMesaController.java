@@ -34,7 +34,7 @@ public class AdminMesaController {
 
 	@GetMapping
 	public List<MesaResponse> listar() {
-		return service.listar(true);
+		return service.listar(true, null);
 	}
 
 	@GetMapping("/{id}")

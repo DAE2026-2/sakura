@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sakura.dto.CategoriaRequest;
+import com.sakura.dto.CategoriaResponse;
 import com.sakura.exception.ApiException;
 import com.sakura.model.Categoria;
 import com.sakura.repository.CategoriaRepository;
@@ -25,28 +26,27 @@ public class CategoriaService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<Categoria> listar() {
-		return categorias.findAllByOrderByOrdenAscNombreAsc();
+	public List<CategoriaResponse> listar() {
+		return categorias.findAllByOrderByOrdenAscNombreAsc().stream().map(CategoriaResponse::de).toList();
 	}
 
 	@Transactional(readOnly = true)
-	public Categoria obtener(Long id) {
-		return categorias.findById(id)
-				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe esa categoría"));
+	public CategoriaResponse obtener(Long id) {
+		return CategoriaResponse.de(buscar(id));
 	}
 
 	@Transactional
-	public Categoria crear(CategoriaRequest req) {
+	public CategoriaResponse crear(CategoriaRequest req) {
 		String nombre = req.nombre().trim();
 		if (categorias.existsByNombreIgnoreCase(nombre)) {
 			throw new ApiException(HttpStatus.CONFLICT, "Ya existe una categoría con ese nombre");
 		}
-		return categorias.save(new Categoria(nombre, Textos.vacioANull(req.descripcion()), req.ordenOCero()));
+		return CategoriaResponse.de(categorias.save(new Categoria(nombre, Textos.vacioANull(req.descripcion()), req.ordenOCero())));
 	}
 
 	@Transactional
-	public Categoria actualizar(Long id, CategoriaRequest req) {
-		var categoria = obtener(id);
+	public CategoriaResponse actualizar(Long id, CategoriaRequest req) {
+		var categoria = buscar(id);
 		String nombre = req.nombre().trim();
 		if (categorias.existsByNombreIgnoreCaseAndIdNot(nombre, id)) {
 			throw new ApiException(HttpStatus.CONFLICT, "Ya existe una categoría con ese nombre");
@@ -54,17 +54,22 @@ public class CategoriaService {
 		categoria.setNombre(nombre);
 		categoria.setDescripcion(Textos.vacioANull(req.descripcion()));
 		categoria.setOrden(req.ordenOCero());
-		return categoria;
+		return CategoriaResponse.de(categoria);
 	}
 
 	/** Una categoría con productos no se puede borrar: primero hay que moverlos o eliminarlos. */
 	@Transactional
 	public void eliminar(Long id) {
-		var categoria = obtener(id);
+		var categoria = buscar(id);
 		if (productos.existsByCategoriaId(id)) {
 			throw new ApiException(HttpStatus.CONFLICT,
 					"La categoría tiene productos. Muévelos a otra categoría o elimínalos antes");
 		}
 		categorias.delete(categoria);
+	}
+
+	private Categoria buscar(Long id) {
+		return categorias.findById(id)
+				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe esa categoría"));
 	}
 }

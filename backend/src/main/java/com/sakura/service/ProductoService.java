@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.sakura.dto.ProductoRequest;
+import com.sakura.dto.ProductoResponse;
 import com.sakura.exception.ApiException;
 import com.sakura.model.Producto;
 import com.sakura.repository.CategoriaRepository;
@@ -26,29 +27,27 @@ public class ProductoService {
 	}
 
 	@Transactional(readOnly = true)
-	public List<Producto> listar() {
-		return productos.findAllByOrderByOrdenAscNombreAsc();
+	public List<ProductoResponse> listar() {
+		return productos.findAllByOrderByOrdenAscNombreAsc().stream().map(ProductoResponse::de).toList();
 	}
 
+	/** El DTO se arma dentro de la transacción, así la categoría (carga perezosa) siempre está disponible. */
 	@Transactional(readOnly = true)
-	public Producto obtener(Long id) {
-		var producto = productos.findById(id)
-				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe ese producto"));
-		producto.getCategoria().getNombre(); // carga la categoría antes de cerrar la transacción
-		return producto;
+	public ProductoResponse obtener(Long id) {
+		return ProductoResponse.de(buscar(id));
 	}
 
 	@Transactional
-	public Producto crear(ProductoRequest req) {
+	public ProductoResponse crear(ProductoRequest req) {
 		var categoria = categorias.findById(req.categoriaId())
 				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa categoría no existe"));
-		return productos.save(new Producto(categoria, req.nombre().trim(), Textos.vacioANull(req.descripcion()), req.precio(),
-				req.esDisponible(), req.esDestacado(), req.ordenOCero()));
+		return ProductoResponse.de(productos.save(new Producto(categoria, req.nombre().trim(), Textos.vacioANull(req.descripcion()), req.precio(),
+				req.esDisponible(), req.esDestacado(), req.ordenOCero())));
 	}
 
 	@Transactional
-	public Producto actualizar(Long id, ProductoRequest req) {
-		var producto = obtener(id);
+	public ProductoResponse actualizar(Long id, ProductoRequest req) {
+		var producto = buscar(id);
 		var categoria = categorias.findById(req.categoriaId())
 				.orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Esa categoría no existe"));
 		producto.setCategoria(categoria);
@@ -58,13 +57,13 @@ public class ProductoService {
 		producto.setDisponible(req.esDisponible());
 		producto.setDestacado(req.esDestacado());
 		producto.setOrden(req.ordenOCero());
-		return producto;
+		return ProductoResponse.de(producto);
 	}
 
 	/** Un producto que ya está en algún pedido no se borra (perdería el historial): se marca como no disponible. */
 	@Transactional
 	public void eliminar(Long id) {
-		var producto = obtener(id);
+		var producto = buscar(id);
 		try {
 			productos.delete(producto);
 			productos.flush();
@@ -72,5 +71,10 @@ public class ProductoService {
 			throw new ApiException(HttpStatus.CONFLICT,
 					"El producto aparece en pedidos. Márcalo como no disponible en lugar de eliminarlo");
 		}
+	}
+
+	private Producto buscar(Long id) {
+		return productos.findById(id)
+				.orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No existe ese producto"));
 	}
 }

@@ -32,24 +32,23 @@ public class AdminProductoController {
 
 	@GetMapping
 	public List<ProductoResponse> listar() {
-		return service.listar().stream().map(ProductoResponse::de).toList();
+		return service.listar();
 	}
 
 	@GetMapping("/{id}")
 	public ProductoResponse obtener(@PathVariable Long id) {
-		return ProductoResponse.de(service.obtener(id));
+		return service.obtener(id);
 	}
 
 	@PostMapping
 	public ResponseEntity<ProductoResponse> crear(@Valid @RequestBody ProductoRequest req) {
 		var producto = service.crear(req);
-		return ResponseEntity.created(URI.create("/api/admin/productos/" + producto.getId()))
-				.body(ProductoResponse.de(producto));
+		return ResponseEntity.created(URI.create("/api/admin/productos/" + producto.id())).body(producto);
 	}
 
 	@PutMapping("/{id}")
 	public ProductoResponse actualizar(@PathVariable Long id, @Valid @RequestBody ProductoRequest req) {
-		return ProductoResponse.de(service.actualizar(id, req));
+		return service.actualizar(id, req);
 	}
 
 	@DeleteMapping("/{id}")

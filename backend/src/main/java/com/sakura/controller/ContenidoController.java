@@ -6,9 +6,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sakura.dto.ExperienciaResponse;
+import com.sakura.dto.FaqResponse;
 import com.sakura.dto.MenuCategoriaResponse;
-import com.sakura.model.Experiencia;
-import com.sakura.model.Faq;
 import com.sakura.service.ContenidoService;
 
 @RestController
@@ -27,12 +27,12 @@ public class ContenidoController {
 	}
 
 	@GetMapping("/experiencias")
-	public List<Experiencia> experiencias() {
+	public List<ExperienciaResponse> experiencias() {
 		return service.experiencias();
 	}
 
 	@GetMapping("/faqs")
-	public List<Faq> faqs() {
+	public List<FaqResponse> faqs() {
 		return service.faqs();
 	}
 }

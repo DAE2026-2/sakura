@@ -3,6 +3,7 @@ package com.sakura.service;
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
@@ -26,6 +27,7 @@ import com.sakura.config.SakuraProperties;
 import com.sakura.dto.DisponibilidadResponse;
 import com.sakura.dto.ReservaRequest;
 import com.sakura.exception.ApiException;
+import com.sakura.model.EstadoMesa;
 import com.sakura.model.EstadoReserva;
 import com.sakura.model.Mesa;
 import com.sakura.model.Reserva;
@@ -89,7 +91,7 @@ public class ReservaService {
 				.map(t -> new DisponibilidadResponse.Hora(t.getHora(),
 						(int) (t.getCapacidadMax() - ocupadas.getOrDefault(t.getHora(), 0L))))
 				.filter(h -> h.plazasLibres() >= personas)
-				.filter(h -> mesaLibre(todas, delDia, h.hora(), personas, null).isPresent())
+				.filter(h -> mesaLibre(candidatas(todas, fecha, h.hora()), delDia, h.hora(), personas, null).isPresent())
 				.toList();
 		return new DisponibilidadResponse(fecha, personas, horas,
 				horas.isEmpty() ? "No quedan horas libres para %d personas este día".formatted(personas) : null);
@@ -106,18 +108,25 @@ public class ReservaService {
 		if (yaPasada(req.fecha(), req.hora())) {
 			throw new ApiException(HttpStatus.BAD_REQUEST, "Esa hora ya ha pasado");
 		}
+		String email = req.email().trim().toLowerCase();
+		// Evita duplicados por doble clic o por reservar "por si acaso" varias horas el mismo día.
+		if (reservas.existsByEmailIgnoreCaseAndFechaAndEstadoIn(email, req.fecha(), ACTIVAS)) {
+			throw new ApiException(HttpStatus.CONFLICT,
+					"Ya tienes una reserva para ese día. Si quieres otra hora, cancela primero la que tienes");
+		}
 		long ocupadas = reservas.personasEnTurno(req.fecha(), req.hora(), EstadoReserva.CANCELADA);
 		if (ocupadas + req.personas() > turno.getCapacidadMax()) {
 			throw new ApiException(HttpStatus.CONFLICT,
 					"Ya no quedan plazas para %d personas a las %s. Prueba otra hora".formatted(req.personas(), req.hora()));
 		}
-		var mesa = mesaLibre(mesas.findAll(), reservas.findByFechaAndEstadoIn(req.fecha(), ACTIVAS), req.hora(),
+		var mesa = mesaLibre(candidatas(mesas.findAll(), req.fecha(), req.hora()),
+				reservas.findByFechaAndEstadoIn(req.fecha(), ACTIVAS), req.hora(),
 				req.personas(), null)
 				.orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
 						"Ya no quedan mesas para %d personas a las %s. Prueba otra hora".formatted(req.personas(), req.hora())));
 
 		var reserva = new Reserva(nuevoCodigo(), req.fecha(), req.hora(), req.personas(),
-				req.nombre().trim(), req.email().trim().toLowerCase(), req.telefono().trim(),
+				req.nombre().trim(), email, req.telefono().trim(),
 				Textos.vacioANull(req.notas()), OffsetDateTime.now(clock));
 		reserva.setMesa(mesa);
 		reservas.save(reserva);
@@ -135,7 +144,7 @@ public class ReservaService {
 	public Reserva consultar(String codigo, String email) {
 		return reservas.findByCodigo(codigo.trim().toUpperCase())
 				.filter(r -> email != null && r.getEmail().equalsIgnoreCase(email.trim()))
-				.orElseThrow(ApiException::noEncontrada);
+				.orElseThrow(ReservaService::noEncontrada);
 	}
 
 	@Transactional
@@ -178,7 +187,8 @@ public class ReservaService {
 			boolean sigueLibre = reserva.getMesa() != null
 					&& mesaLibre(List.of(reserva.getMesa()), otras, reserva.getHora(), reserva.getPersonas(), id).isPresent();
 			if (!sigueLibre) {
-				reserva.setMesa(mesaLibre(mesas.findAll(), otras, reserva.getHora(), reserva.getPersonas(), id)
+				reserva.setMesa(mesaLibre(candidatas(mesas.findAll(), reserva.getFecha(), reserva.getHora()), otras,
+						reserva.getHora(), reserva.getPersonas(), id)
 						.orElseThrow(() -> new ApiException(HttpStatus.CONFLICT,
 								"No queda ninguna mesa libre para esta reserva a las " + reserva.getHora())));
 			}
@@ -252,8 +262,22 @@ public class ReservaService {
 				.min(MAS_PEQUENA);
 	}
 
+	/**
+	 * Mesas que pueden recibir una reserva a esa hora: si empieza antes de que acabe una comida que ya está en curso
+	 * ({@code duracionMinutos} desde ahora), las mesas ocupadas ahora mismo no sirven.
+	 */
+	private List<Mesa> candidatas(List<Mesa> todas, LocalDate fecha, LocalTime hora) {
+		var finComidaActual = LocalDateTime.now(clock).plusMinutes(props.reservas().duracionMinutos());
+		if (fecha.atTime(hora).isAfter(finComidaActual)) return todas;
+		return todas.stream().filter(m -> m.getEstado() != EstadoMesa.OCUPADA).toList();
+	}
+
 	private Reserva buscar(Long id) {
-		return reservas.findWithMesaById(id).orElseThrow(ApiException::noEncontrada);
+		return reservas.findWithMesaById(id).orElseThrow(ReservaService::noEncontrada);
+	}
+
+	private static ApiException noEncontrada() {
+		return new ApiException(HttpStatus.NOT_FOUND, "No encontramos ninguna reserva con esos datos");
 	}
 
 	/** Devuelve por qué no se puede reservar ese día, o null si se puede. */
