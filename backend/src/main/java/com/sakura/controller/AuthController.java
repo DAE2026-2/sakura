@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.sakura.dto.LoginRequest;
+import com.sakura.dto.LoginResponse;
 import com.sakura.dto.RegistroRequest;
 import com.sakura.dto.UsuarioResponse;
 import com.sakura.service.AuthService;
@@ -26,14 +28,20 @@ public class AuthController {
 		this.service = service;
 	}
 
-	/** Crea una cuenta de cliente. Después se inicia sesión con HTTP Basic (email y contraseña). */
+	/** Inicia sesión: devuelve el token JWT para la cabecera {@code Authorization: Bearer <token>}. */
+	@PostMapping("/login")
+	public LoginResponse login(@Valid @RequestBody LoginRequest req) {
+		return service.login(req);
+	}
+
+	/** Crea una cuenta de cliente. Después se inicia sesión con POST /api/auth/login. */
 	@PostMapping("/registro")
 	@ResponseStatus(HttpStatus.CREATED)
 	public UsuarioResponse registrar(@Valid @RequestBody RegistroRequest req) {
 		return UsuarioResponse.de(service.registrar(req));
 	}
 
-	/** Comprueba las credenciales y devuelve quién es el usuario y su rol. */
+	/** Comprueba el token y devuelve quién es el usuario y su rol. */
 	@GetMapping("/yo")
 	public UsuarioResponse yo(Principal principal) {
 		return UsuarioResponse.de(service.actual(principal.getName()));

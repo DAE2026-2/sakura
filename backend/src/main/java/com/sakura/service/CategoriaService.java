@@ -41,7 +41,7 @@ public class CategoriaService {
 		if (categorias.existsByNombreIgnoreCase(nombre)) {
 			throw new ApiException(HttpStatus.CONFLICT, "Ya existe una categoría con ese nombre");
 		}
-		return categorias.save(new Categoria(nombre, vacioANull(req.descripcion()), req.ordenOCero()));
+		return categorias.save(new Categoria(nombre, Textos.vacioANull(req.descripcion()), req.ordenOCero()));
 	}
 
 	@Transactional
@@ -52,7 +52,7 @@ public class CategoriaService {
 			throw new ApiException(HttpStatus.CONFLICT, "Ya existe una categoría con ese nombre");
 		}
 		categoria.setNombre(nombre);
-		categoria.setDescripcion(vacioANull(req.descripcion()));
+		categoria.setDescripcion(Textos.vacioANull(req.descripcion()));
 		categoria.setOrden(req.ordenOCero());
 		return categoria;
 	}
@@ -66,9 +66,5 @@ public class CategoriaService {
 					"La categoría tiene productos. Muévelos a otra categoría o elimínalos antes");
 		}
 		categorias.delete(categoria);
-	}
-
-	private static String vacioANull(String texto) {
-		return texto == null || texto.isBlank() ? null : texto.trim();
 	}
 }

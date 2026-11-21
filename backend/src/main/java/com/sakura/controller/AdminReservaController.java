@@ -20,7 +20,7 @@ import com.sakura.service.ReservaService;
 
 import jakarta.validation.Valid;
 
-/** Panel del restaurante. Protegido con HTTP Basic en SecurityConfig. */
+/** Reservas del día para el panel. Solo ADMIN (SecurityConfig protege /api/admin/**). */
 @RestController
 @RequestMapping("/api/admin/reservas")
 public class AdminReservaController {

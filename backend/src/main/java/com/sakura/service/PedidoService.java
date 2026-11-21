@@ -44,8 +44,6 @@ import jakarta.persistence.criteria.Predicate;
 @Service
 public class PedidoService {
 
-	private static final Set<EstadoPedido> CERRADOS = EnumSet.of(EstadoPedido.PAGADO, EstadoPedido.CANCELADO);
-
 	/** Transiciones permitidas para meseros y administradores. */
 	private static final Map<EstadoPedido, Set<EstadoPedido>> TRANSICIONES = Map.of(
 			EstadoPedido.PENDIENTE, EnumSet.of(EstadoPedido.EN_PREPARACION, EstadoPedido.CANCELADO),
@@ -77,7 +75,7 @@ public class PedidoService {
 		var usuario = usuario(email);
 		Specification<Pedido> spec = (root, q, cb) -> {
 			List<Predicate> ps = new ArrayList<>();
-			ps.add(cb.not(root.get("estado").in(CERRADOS)));
+			ps.add(cb.not(root.get("estado").in(EstadoPedido.CERRADOS)));
 			if (mesaId != null) ps.add(cb.equal(root.get("mesa").get("id"), mesaId));
 			if (usuario.getRol() == Rol.CLIENTE) ps.add(cb.equal(root.get("usuario").get("id"), usuario.getId()));
 			return cb.and(ps.toArray(Predicate[]::new));
@@ -110,7 +108,7 @@ public class PedidoService {
 			reserva.get().setEstado(EstadoReserva.ATENDIDA);
 		}
 		mesa.setEstado(EstadoMesa.OCUPADA);
-		var pedido = pedidos.save(new Pedido(mesa, usuario, vacioANull(req.notas()), ahora()));
+		var pedido = pedidos.save(new Pedido(mesa, usuario, Textos.vacioANull(req.notas()), ahora()));
 		return PedidoResponse.de(pedido);
 	}
 
@@ -168,7 +166,7 @@ public class PedidoService {
 		}
 		pedido.setEstado(nuevo);
 		pedido.setActualizadoEn(ahora());
-		if (CERRADOS.contains(nuevo)) pedido.getMesa().setEstado(EstadoMesa.DISPONIBLE);
+		if (nuevo.cerrado()) pedido.getMesa().setEstado(EstadoMesa.DISPONIBLE);
 		return PedidoResponse.de(pedido);
 	}
 
@@ -230,9 +228,5 @@ public class PedidoService {
 
 	private OffsetDateTime ahora() {
 		return OffsetDateTime.now(clock);
-	}
-
-	private static String vacioANull(String texto) {
-		return texto == null || texto.isBlank() ? null : texto.trim();
 	}
 }

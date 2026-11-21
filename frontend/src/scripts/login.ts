@@ -1,8 +1,6 @@
-// Página /login: inicia sesión con HTTP Basic (o crea una cuenta de cliente) y lleva a cada rol a su pantalla.
-// La sesión se guarda igual que en el panel, así que las pantallas de /admin y /mesero ya no piden la contraseña.
-import { credenciales, guardarClave } from './admin-sesion';
-
-type Usuario = { nombre: string; rol: 'ADMIN' | 'MESERO' | 'CLIENTE' };
+// Página /login: pide el token JWT (o crea una cuenta de cliente) y lleva a cada rol a su pantalla.
+// El token se guarda igual que en el panel, así que las pantallas de /admin y /mesero ya no piden la contraseña.
+import { guardarClave, iniciarSesion, SesionCaducada, type Usuario } from './admin-sesion';
 
 const destino: Record<Usuario['rol'], string> = { ADMIN: '/admin/mesas', MESERO: '/mesero', CLIENTE: '/mi-pedido' };
 
@@ -22,21 +20,16 @@ export function initLogin() {
   tabs.forEach((t) => t.addEventListener('click', () => mostrarTab(t.dataset.tab!)));
 
   const iniciar = async (email: string, password: string, error: HTMLElement) => {
-    const auth = credenciales(email, password);
-    let res: Response;
     try {
-      res = await fetch(`${api}/auth/yo`, { headers: { Authorization: `Basic ${auth}` } });
-    } catch {
-      error.textContent = 'No hay conexión con el servidor. ¿Está arrancado el backend?';
-      return;
+      const { token, usuario } = await iniciarSesion(api, email, password);
+      guardarClave(token);
+      location.href = destino[usuario.rol];
+    } catch (e) {
+      error.textContent =
+        e instanceof SesionCaducada
+          ? 'Email o contraseña incorrectos.'
+          : 'No hay conexión con el servidor. ¿Está arrancado el backend?';
     }
-    if (res.status === 401) {
-      error.textContent = 'Email o contraseña incorrectos.';
-      return;
-    }
-    const usuario = (await res.json()) as Usuario;
-    guardarClave(auth);
-    location.href = destino[usuario.rol];
   };
 
   entrar.addEventListener('submit', (event) => {

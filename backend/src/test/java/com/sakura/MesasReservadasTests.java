@@ -107,4 +107,19 @@ class MesasReservadasTests {
 				.hasMessageContaining("ya está reservada");
 		assertThat(reservas.cambiarMesa(segunda.getId(), 8L).getMesa().getNumero()).isEqualTo(8);
 	}
+
+	@Test
+	void reactivarUnaReservaCanceladaRespetaElCupoDelTurno() {
+		var grande = reservar("20:00", 8); // mesa 10
+		reservas.cambiarEstado(grande.getId(), EstadoReserva.CANCELADA);
+		reservar("20:00", 6); // el turno de las 20:00 admite 20 personas: 6+4+4+4+2 = 20, lleno
+		reservar("20:00", 4);
+		reservar("20:00", 4);
+		reservar("20:00", 4);
+		reservar("20:00", 2);
+
+		assertThatThrownBy(() -> reservas.cambiarEstado(grande.getId(), EstadoReserva.CONFIRMADA))
+				.isInstanceOf(ApiException.class)
+				.hasMessageContaining("plazas");
+	}
 }

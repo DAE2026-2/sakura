@@ -5,8 +5,20 @@ con detalle y total automático, usuarios con roles (Administrador, Mesero, Clie
 **recorrido por el local que avanza con el scroll** y **reservas online**.
 
 Proyecto de clase de **Desarrollo de Aplicaciones Empresariales** (UTS, II-2026). Arquitectura de 3 capas / MVC:
-**Spring Boot** (API REST), **PostgreSQL en Supabase** y frontend en **Astro** (JavaScript/TypeScript).
-Requerimientos y justificación: documento del Sprint 1.
+**Spring Boot** (API REST con **JWT**), **PostgreSQL en Supabase** y frontend en **Astro** (JavaScript/TypeScript).
+Requerimientos y justificación: documento del Sprint 1. Diseño, capas y revisión de la arquitectura en
+[`docs/arquitectura.md`](docs/arquitectura.md).
+
+## Entregables
+
+| Entregable | Dónde |
+|---|---|
+| Fuentes del proyecto | Este repositorio: https://github.com/DAE2026-2/sakura |
+| Documento guía (este README) | Cómo se instala, se usa y se prueba |
+| Backend en Spring Boot | [`backend/`](backend) |
+| Frontend | [`frontend/`](frontend) — en **Astro** en lugar de React (ver [`docs/arquitectura.md`](docs/arquitectura.md#por-qué-astro-y-no-react)) |
+| Script de la base de datos | [`database/supabase.sql`](database/supabase.sql) |
+| DER (diagrama entidad-relación) | [`docs/base-de-datos.md`](docs/base-de-datos.md) |
 
 ## Equipo
 
@@ -31,7 +43,7 @@ flowchart LR
     end
     DB[(Supabase · PostgreSQL)]
     L -- fetch JSON --> C
-    A -- fetch JSON + HTTP Basic --> C
+    A -- fetch JSON + Bearer JWT --> C
     R --> DB
 ```
 
@@ -51,7 +63,7 @@ sakura/
 │       ├── controller/      Controladores REST públicos y /api/admin
 │       ├── dto/             Peticiones y respuestas (records con validación)
 │       ├── exception/       Errores de negocio y respuestas de error en JSON
-│       └── config/          Seguridad (HTTP Basic en /api/admin), CORS y propiedades
+│       └── config/          Seguridad (JWT y roles), CORS y propiedades
 ├── frontend/                Astro 7 · Tailwind 4 · GSAP · Lenis
 │   └── src/
 │       ├── pages/           index (landing) y panel /admin
@@ -82,9 +94,12 @@ cd backend
 Arranca con una base de datos H2 en memoria y datos de ejemplo, sin configurar nada. Para usar Supabase:
 
 ```sh
-cp .env.example .env        # rellena la conexión del Session pooler (Supabase → Connect)
+cp .env.example .env        # rellena la conexión del Session pooler (Supabase → Connect) y JWT_SECRET
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=supabase
 ```
+
+`JWT_SECRET` es la clave con la que se firman los tokens (mínimo 32 caracteres): `openssl rand -base64 48`.
+En local no hace falta, el perfil `local` trae una de desarrollo. Sin ella, el perfil `supabase` no arranca.
 
 ### 2. Frontend (puerto 4321)
 
@@ -95,6 +110,7 @@ npm run dev
 ```
 
 - Landing: http://localhost:4321
+- Iniciar sesión: http://localhost:4321/login (cada rol va a su pantalla; usuarios de prueba más abajo)
 - Panel: http://localhost:4321/admin (admin@sakura.example / sakura123)
 - Vídeos del recorrido (opcional): `sh scripts-dev/descargar-videos.sh`
 
@@ -103,6 +119,7 @@ npm run dev
 | Método | Ruta | Descripción | Acceso | HU |
 |---|---|---|---|---|
 | GET | `/api/menu` | Menú: categorías con productos disponibles | Público | HU-06 |
+| POST | `/api/auth/login` | Inicia sesión: devuelve el token JWT | Público | HU-07 |
 | POST | `/api/auth/registro` | Registro de cliente | Público | HU-07 |
 | GET | `/api/auth/yo` | Usuario autenticado y su rol | Autenticado | HU-07 |
 | CRUD | `/api/admin/categorias` | Categorías | Admin | HU-02 |
@@ -116,8 +133,48 @@ npm run dev
 | POST · GET · DELETE | `/api/reservas` | Reservas online | Público | HU-09 |
 | GET · PATCH | `/api/admin/reservas` | Reservas del día | Admin | HU-09 |
 
-Autenticación: HTTP Basic con email y contraseña de la tabla `usuario`. Los errores siempre responden
-`{ "mensaje": "...", "campos": { "campo": "error" } }`.
+Los errores siempre responden `{ "mensaje": "...", "campos": { "campo": "error" } }`.
+
+## Cómo se usa la API (JWT)
+
+1. **Iniciar sesión** con email y contraseña. Devuelve un token que dura 8 horas (`sakura.jwt.horas`):
+
+   ```sh
+   curl -X POST http://localhost:8080/api/auth/login \
+     -H 'Content-Type: application/json' \
+     -d '{"email":"admin@sakura.example","password":"sakura123"}'
+   # {"token":"eyJhbGciOiJIUzI1NiJ9...","usuario":{"id":1,"nombre":"Administrador","rol":"ADMIN",...}}
+   ```
+
+2. **Enviar el token** en cada petición protegida:
+
+   ```sh
+   TOKEN=eyJhbGciOiJIUzI1NiJ9...
+   curl http://localhost:8080/api/admin/usuarios -H "Authorization: Bearer $TOKEN"
+   ```
+
+3. **Respuestas**: sin token o con token caducado/alterado → `401`; con token de un rol sin permiso → `403`.
+4. **Cerrar sesión**: el frontend borra el token. El servidor no guarda sesiones; además, en cada petición vuelve a
+   leer el usuario de la base, así que si un administrador lo **desactiva o le cambia el rol**, el token viejo deja de
+   valer o pierde permisos al momento.
+
+En Postman: pestaña *Authorization* → *Bearer Token* y pega el token.
+
+## Pruebas
+
+```sh
+cd backend
+./mvnw test
+```
+
+19 pruebas automáticas contra la base H2 en memoria (no tocan Supabase):
+
+| Archivo | Qué prueba |
+|---|---|
+| `SeguridadJwtTests` | Login correcto e incorrecto, token en `/auth/yo`, HTTP Basic ya no sirve, token alterado, permisos de cada rol (200/401/403), usuario desactivado, registro |
+| `CrudEndpointsTests` | CRUD completo por HTTP de categorías, productos, mesas y usuarios; errores de validación por campo; pedido completo del mesero (total automático, mesa ocupada y liberada, ventas en el historial) |
+| `MesasReservadasTests` | Mesa asignada a cada reserva, mesa reservada para el cliente y el mesero, cambio de mesa, cupo del turno al reactivar una reserva |
+| `BackendApplicationTests` | La aplicación arranca |
 
 ## Usuarios de prueba
 
