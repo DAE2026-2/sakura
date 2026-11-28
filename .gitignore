@@ -6,3 +6,8 @@
 
 # Vídeos del recorrido (de midudev, se descargan con frontend/scripts-dev/descargar-videos.sh)
 frontend/public/video/
+
+# Despliegue AWS: llave SSH y datos de la instancia
+deploy/*.pem
+deploy/.instance
+deploy/*.tgz

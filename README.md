@@ -114,6 +114,48 @@ npm run dev
 - Panel: http://localhost:4321/admin (admin@sakura.example / sakura123)
 - Vídeos del recorrido (opcional): `sh scripts-dev/descargar-videos.sh`
 
+## Cómo se usa (paso a paso)
+
+**En línea:** https://34-204-83-119.sslip.io (IP elástica `34.204.83.119`). En local: http://localhost:4321.
+
+1. **Cliente sin cuenta**: abre la landing, pulsa *Reservar mesa*, elige fecha, hora y personas y envía. Guarda el
+   código `SAK-XXXX`: con él y tu email puedes consultar o cancelar la reserva.
+2. **Cliente con cuenta**: entra en `/login` (o crea una cuenta en *Crear cuenta*). Te lleva a `/mi-pedido`: elige
+   mesa, añade platos de la carta y sigue el estado. Mientras está pendiente puedes cambiarlo o cancelarlo.
+3. **Mesero**: entra con `mesero@sakura.example`. En `/mesero` ves las mesas con su estado; toca una para abrir el
+   pedido, añade productos, cambia el estado (en preparación → servido) y cóbralo para liberar la mesa.
+4. **Administrador**: entra con `admin@sakura.example`. En `/admin` ves las reservas del día (cambiar mesa o estado)
+   y desde el menú lateral gestionas categorías, productos, mesas, usuarios y el historial de ventas.
+5. **Cerrar sesión**: botón *Cerrar sesión*.
+
+## Despliegue en AWS (RNF-06)
+
+Una EC2 `t3.micro` en **us-east-1** con **IP elástica** (no cambia aunque se reinicie). Dentro corren dos
+contenedores Docker: el backend (Java 21, perfil `supabase`) y **Caddy**, que sirve el frontend compilado, envía
+`/api` al backend y pone **HTTPS** automático con `sslip.io`. La base de datos **sigue en Supabase** (también en
+us-east-1); no se migra.
+
+```mermaid
+flowchart LR
+    U[Navegador] -- HTTPS --> C[Caddy · EC2 IP elástica]
+    C -- archivos --> F[frontend/dist]
+    C -- /api --> B[Spring Boot :8080]
+    B --> DB[(Supabase · PostgreSQL)]
+```
+
+Requisitos: AWS CLI con sesión (`aws login`), `backend/.env` relleno, Java 21+ y Node 22+.
+
+```sh
+sh deploy/aws-up.sh     # 1. crea key pair, security group (80/443 público, 22 solo tu IP), EC2 e IP elástica
+sh deploy/aws-ship.sh   # 2. compila backend y frontend y los sube; imprime la URL. Repetir tras cada cambio
+sh deploy/aws-down.sh   # 3. al terminar: borra instancia, IP elástica, security group y key pair (deja de cobrar)
+```
+
+- Coste aproximado: ~US$0,35/día con la instancia encendida (EC2 + IP elástica). Apagarla no libera la IP: usar `aws-down.sh`.
+- Las páginas leen el menú **al compilar**: si cambias productos en el panel, vuelve a correr `aws-ship.sh` para que
+  la landing lo muestre.
+- Entrar al servidor: `ssh -i deploy/sakura-demo.pem ec2-user@<IP>`; registros del backend: `docker logs sakura-api`.
+
 ## API
 
 | Método | Ruta | Descripción | Acceso | HU |
